@@ -35,13 +35,35 @@ def parse_requirements(text: str) -> dict:
     """Parse free-text user requirements into structured fields."""
     text_lower = text.lower()
 
-    # Budget: look for a number, optionally with $ or "sgd"
-    budget_match = re.search(r"\$?\s*(\d+)", text_lower)
-    budget = int(budget_match.group(1)) if budget_match else None
-
-    # Quantity (not used in filtering, but useful to show in UI)
+    # Quantity (not used directly in filtering, but useful for totals)
     qty_match = re.search(r"(\d+)\s*(laptop|pc|computer|computers|laptops)", text_lower)
     quantity = int(qty_match.group(1)) if qty_match else 1
+
+    # For budget parsing, ignore the quantity part so "3 laptops" is not treated as $3
+    if qty_match:
+        start, end = qty_match.span(1)  # just the number part
+        text_for_budget = text_lower[:start] + text_lower[end:]
+    else:
+        text_for_budget = text_lower
+
+    # Budget: look for phrases like "under 1500", "budget 1200", "around 1000"
+    budget_pattern = r"(under|below|budget|around|less than|\$)\s*\$?\s*(\d+)"
+    budget_match = re.search(budget_pattern, text_for_budget)
+    if budget_match:
+        budget = int(budget_match.group(2))
+    else:
+        # fallback: look for a standalone number, but avoid confusing it with quantity
+        loose_match = re.search(r"\$?\s*(\d+)", text_for_budget)
+        if loose_match:
+            candidate = int(loose_match.group(1))
+            # if this number is exactly the quantity (e.g. "1 laptop") and we
+            # already captured quantity, treat it as quantity only, not budget
+            if quantity is not None and candidate == quantity:
+                budget = None
+            else:
+                budget = candidate
+        else:
+            budget = None
 
     # OS preference
     if "mac" in text_lower or "macos" in text_lower:
@@ -52,7 +74,13 @@ def parse_requirements(text: str) -> dict:
         os_pref = "any"
 
     # Job function / use-case (simple keyword-based)
-    if "video" in text_lower or "editing" in text_lower:
+    if (
+        "video" in text_lower
+        or "editing" in text_lower
+        or "premiere" in text_lower
+        or "after effects" in text_lower
+        or "davinci" in text_lower
+    ):
         job = "video_editing"
     elif (
         "photo" in text_lower
@@ -61,9 +89,21 @@ def parse_requirements(text: str) -> dict:
         or "graphic design" in text_lower
         or "designer" in text_lower
         or "design work" in text_lower
+        or "illustrator" in text_lower
+        or "canva" in text_lower
+        or "figma" in text_lower
+        or "indesign" in text_lower
     ):
         job = "creative_design"
-    elif "account" in text_lower or "finance" in text_lower or "bookkeep" in text_lower:
+    elif (
+        "account" in text_lower
+        or "finance" in text_lower
+        or "bookkeep" in text_lower
+        or "excel" in text_lower
+        or "spreadsheets" in text_lower
+        or "quickbooks" in text_lower
+        or "xero" in text_lower
+    ):
         job = "accounting"
     elif (
         "data" in text_lower
@@ -71,14 +111,25 @@ def parse_requirements(text: str) -> dict:
         or "ai" in text_lower
         or "analytics" in text_lower
         or "analysis" in text_lower
+        or "tableau" in text_lower
+        or "power bi" in text_lower
+        or "sql" in text_lower
     ):
         job = "data_science"
     elif (
         "developer" in text_lower
         or "coding" in text_lower
+        or "code" in text_lower
         or "programming" in text_lower
         or "software engineer" in text_lower
         or "web dev" in text_lower
+        or "python" in text_lower
+        or "java " in text_lower
+        or "c++" in text_lower
+        or "javascript" in text_lower
+        or "vscode" in text_lower
+        or "visual studio" in text_lower
+        or "github" in text_lower
     ):
         job = "software_dev"
     elif (
@@ -88,9 +139,22 @@ def parse_requirements(text: str) -> dict:
         or "university" in text_lower
         or "college" in text_lower
         or "study" in text_lower
+        or "homework" in text_lower
+        or "assignments" in text_lower
+        or "lecture" in text_lower
+        or "notes" in text_lower
     ):
         job = "student_use"
-    elif "gaming" in text_lower or "games" in text_lower or "game" in text_lower:
+    elif (
+        "gaming" in text_lower
+        or "games" in text_lower
+        or "game" in text_lower
+        or "valorant" in text_lower
+        or "dota" in text_lower
+        or "csgo" in text_lower
+        or "league of legends" in text_lower
+        or "steam" in text_lower
+    ):
         job = "gaming"
     else:
         job = "general_office"
@@ -202,14 +266,17 @@ def format_reply(req: dict, candidates: pd.DataFrame) -> str:
 
 if __name__ == "__main__":
     print("Specs-to-Need Assistant (type 'exit' to quit)\n")
-    while True:
-        user_text = input(
-            "Describe what you need (e.g. 'I need a laptop for video editing under $1500'): "
-        )
-        if user_text.strip().lower() in {"exit", "quit"}:
-            break
-        req, recs = recommend_devices(user_text)
-        print()
-        print(format_reply(req, recs))
-        print("-" * 60)
+    try:
+        while True:
+            user_text = input(
+                "Describe what you need (e.g. 'I need 3 laptops for video editing under 1500'): "
+            )
+            if user_text.strip().lower() in {"exit", "quit"}:
+                break
+            req, recs = recommend_devices(user_text)
+            print()
+            print(format_reply(req, recs))
+            print("-" * 60)
+    except KeyboardInterrupt:
+        print("\nExiting assistant.")
 
