@@ -51,15 +51,47 @@ def parse_requirements(text: str) -> dict:
     else:
         os_pref = "any"
 
-    # Job function
+    # Job function / use-case (simple keyword-based)
     if "video" in text_lower or "editing" in text_lower:
         job = "video_editing"
-    elif "account" in text_lower:
+    elif (
+        "photo" in text_lower
+        or "photoshop" in text_lower
+        or "lightroom" in text_lower
+        or "graphic design" in text_lower
+        or "designer" in text_lower
+        or "design work" in text_lower
+    ):
+        job = "creative_design"
+    elif "account" in text_lower or "finance" in text_lower or "bookkeep" in text_lower:
         job = "accounting"
-    elif "data" in text_lower or "ml" in text_lower or "ai" in text_lower:
+    elif (
+        "data" in text_lower
+        or "ml" in text_lower
+        or "ai" in text_lower
+        or "analytics" in text_lower
+        or "analysis" in text_lower
+    ):
         job = "data_science"
-    elif "developer" in text_lower or "coding" in text_lower or "programming" in text_lower:
+    elif (
+        "developer" in text_lower
+        or "coding" in text_lower
+        or "programming" in text_lower
+        or "software engineer" in text_lower
+        or "web dev" in text_lower
+    ):
         job = "software_dev"
+    elif (
+        "student" in text_lower
+        or "school" in text_lower
+        or "uni " in text_lower
+        or "university" in text_lower
+        or "college" in text_lower
+        or "study" in text_lower
+    ):
+        job = "student_use"
+    elif "gaming" in text_lower or "games" in text_lower or "game" in text_lower:
+        job = "gaming"
     else:
         job = "general_office"
 
@@ -76,12 +108,18 @@ def parse_requirements(text: str) -> dict:
 def job_to_min_specs(job: str) -> dict:
     if job == "video_editing":
         return {"min_ram": 16, "min_storage": 512, "needs_gpu": True}
+    if job == "creative_design":
+        return {"min_ram": 16, "min_storage": 512, "needs_gpu": True}
     if job == "data_science":
         return {"min_ram": 16, "min_storage": 512, "needs_gpu": False}
     if job == "software_dev":
         return {"min_ram": 16, "min_storage": 512, "needs_gpu": False}
     if job == "accounting":
         return {"min_ram": 8, "min_storage": 256, "needs_gpu": False}
+    if job == "student_use":
+        return {"min_ram": 8, "min_storage": 256, "needs_gpu": False}
+    if job == "gaming":
+        return {"min_ram": 16, "min_storage": 512, "needs_gpu": True}
     return {"min_ram": 8, "min_storage": 256, "needs_gpu": False}
 
 
@@ -117,9 +155,12 @@ def format_reply(req: dict, candidates: pd.DataFrame) -> str:
     """Format a human-readable reply for console or UI."""
     job_map = {
         "video_editing": "Video Editing",
+        "creative_design": "Photo / Graphic Design",
         "data_science": "Data Science / Analytics",
         "software_dev": "Software Development",
         "accounting": "Accounting / Finance",
+        "student_use": "Student / School Use",
+        "gaming": "Gaming",
         "general_office": "General Office Work",
     }
     job_label = job_map.get(req["job_function"], "General Use")
@@ -128,6 +169,7 @@ def format_reply(req: dict, candidates: pd.DataFrame) -> str:
 
     lines = []
     lines.append(f"Interpreted need: {job_label}")
+    lines.append(f"Quantity: {req['quantity']} device(s)")
     if req["budget"]:
         lines.append(f"Budget per device: about ${req['budget']}")
     lines.append(
@@ -144,12 +186,15 @@ def format_reply(req: dict, candidates: pd.DataFrame) -> str:
         )
         return "\n".join(lines)
 
-    lines.append("Top matching devices:")
+    lines.append("Top matching devices (per device):")
     for _, row in candidates.iterrows():
+        total_price = row["price"] * req["quantity"]
         lines.append(
             f"- ID {row['id']}: {row['brand']} {row['model']} "
             f"({row['cpu']}, {row['ram_gb']}GB RAM, {row['storage_gb']}GB {row['storage_type']}, "
-            f"GPU: {row['gpu_type']}), Price: ${row['price']}"
+            f"GPU: {row['gpu_type']}), "
+            f"Price per device: ${row['price']}, "
+            f"Estimated total for {req['quantity']}: ${total_price}"
         )
 
     return "\n".join(lines)

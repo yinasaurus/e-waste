@@ -64,13 +64,13 @@ data = [
 ]
 
 columns = [
-    "brand",          # e.g. Dell, HP, Lenovo, Apple
+    "brand",          # manufacturer, e.g. Dell, HP, Lenovo, Apple
     "model",          # specific model name, e.g. Latitude 7420
-    "cpu",            # CPU family, e.g. i5, i7, M1
+    "cpu",            # CPU family/chip, e.g. i5, i7, M1
     "ram_gb",         # RAM size in GB (8, 16, etc.)
-    "storage_gb",     # Storage size in GB (256, 512, 1000)
-    "storage_type",   # e.g. SSD (could be HDD/SSD in bigger dataset)
-    "gpu_type",       # "integrated" or "dedicated"
+    "storage_gb",     # storage size in GB (256, 512, 1000)
+    "storage_type",   # storage type, e.g. SSD (could be HDD/SSD in bigger dataset)
+    "gpu_type",       # graphics type: "integrated" or "dedicated"
     "age_years",      # how many years old the device is
     "battery_health", # battery condition as a percentage (0–100)
     "grade",          # cosmetic/overall grade, e.g. A or B
@@ -80,6 +80,22 @@ columns = [
 
 - All columns **except `price`** are **input features** (`X`).  
 - `price` is the **label** (`y`) the model learns to predict.
+
+**Column meanings (plain English)**
+
+- **`brand`** – laptop manufacturer (Dell, HP, Lenovo, Apple, etc.).  
+- **`model`** – product line / model name (e.g. Latitude 7420, ThinkPad T14, MacBook Pro 13).  
+- **`cpu`** – CPU family or chip (e.g. i5, i7, M1); higher‑end CPUs usually give better performance and value.  
+- **`ram_gb`** – amount of RAM in gigabytes; higher RAM helps with multitasking and heavy apps.  
+- **`storage_gb`** – internal storage size in gigabytes (how much data/apps you can store).  
+- **`storage_type`** – type of storage drive; SSD is faster than HDD and usually more valuable.  
+- **`gpu_type`** – `"integrated"` (built into CPU, good for office use) or `"dedicated"` (separate GPU, better for video editing/graphics).  
+- **`age_years`** – how many years the device has been in use; older devices usually have lower resale value.  
+- **`battery_health`** – battery condition as a percentage of original capacity (100% ≈ new, 80% = 80% of original).  
+- **`grade`** – overall cosmetic/functional condition:  
+  - **A‑grade**: very good condition, minimal wear, fully functional, higher value.  
+  - **B‑grade**: visible but acceptable signs of use (scratches, small dents), still fully functional, slightly lower value.  
+- **`price` (SGD)** – the resale price in Singapore dollars that the model is trying to predict from all the other columns.
 
 **How it works**
 
@@ -169,8 +185,20 @@ I need 3 laptops for video editing under $1600, prefer Windows.
 The console will show:
 
 - Interpreted need  
+- Quantity requested  
 - Recommended minimum specs  
-- Top matching devices from the sample inventory  
+- Top matching devices from the sample inventory, including:  
+  - price **per device**  
+  - **estimated total** for the requested quantity  
+
+**Example queries you can try**
+
+- `I need 3 laptops for video editing under 1600, prefer Windows.`  
+- `Need a laptop for photo editing and Photoshop under 1500.`  
+- `Looking for a laptop for a school student, budget 900.`  
+- `We want a gaming laptop under 2000.`  
+- `We need 5 computers for accounting and finance work, budget 800 each.`  
+- `Looking for a MacBook for data science and ML, around 2000.`  
 
 ---
 
