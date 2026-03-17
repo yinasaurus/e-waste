@@ -735,21 +735,25 @@ def format_reply(
 
     if not laptop_candidates.empty:
         lines.append(
-            f"{Fore.GREEN}Top matching laptops (per device, prices in SGD, approx):{Style.RESET_ALL}"
+            f"{Fore.GREEN}Top matching laptops (SGD, approx):{Style.RESET_ALL}"
         )
-        for _, row in laptop_candidates.iterrows():
+        header = (
+            f"{'#':<3} {'Brand':<12} {'Model':<24} "
+            f"{'New':>8} {'Used':>8} {'Total (New)':>13}"
+        )
+        lines.append(header)
+        lines.append("-" * len(header))
+        for idx, (_, row) in enumerate(laptop_candidates.iterrows(), start=1):
             price_sgd = row["price_sgd"]
             total_price = price_sgd * req["quantity"]
-             # Simple 2nd-hand heuristic based on laptop price
             used_price = estimate_used_price(price_sgd)
             lines.append(
-                f"{Fore.YELLOW}- ID {row['id']}{Style.RESET_ALL}: "
-                f"{Fore.MAGENTA}{row['brand']} {row['model']}{Style.RESET_ALL} "
-                f"({row['cpu']}, {row['ram_gb']}GB RAM, {row['storage_gb']}GB {row['storage_type']}, "
-                f"GPU: {row['gpu_type']}), "
-                f"{Fore.GREEN}Price per device (new-ish):{Style.RESET_ALL} S${price_sgd:.0f}, "
-                f"{Fore.MAGENTA}suggested 2nd-hand:{Style.RESET_ALL} S${used_price:.0f}, "
-                f"{Fore.GREEN}Estimated total for {req['quantity']} (new-ish):{Style.RESET_ALL} S${total_price:.0f}"
+                f"{idx:<3} "
+                f"{str(row['brand'])[:12]:<12} "
+                f"{str(row['model'])[:24]:<24} "
+                f"S${price_sgd:>6.0f} "
+                f"S${used_price:>6.0f} "
+                f"S${total_price:>11.0f}"
             )
 
     # Mouse suggestions disabled
@@ -770,22 +774,28 @@ def format_reply(
                 f"{Fore.CYAN}Keyboard preferences:{Style.RESET_ALL} "
                 + ", ".join(kb_prefs)
             )
-        lines.append(f"{Fore.GREEN}Suggested keyboards:{Style.RESET_ALL}")
-        for _, row in keyboard_candidates.iterrows():
+        lines.append(
+            f"{Fore.GREEN}Suggested keyboards (SGD, approx):{Style.RESET_ALL}"
+        )
+        header = (
+            f"{'#':<3} {'Name':<26} {'Conn':<10} "
+            f"{'New':>8} {'Used':>8} {'Rating':>8}"
+        )
+        lines.append(header)
+        lines.append("-" * len(header))
+        for idx, (_, row) in enumerate(keyboard_candidates.iterrows(), start=1):
             conn = row["connection"] if isinstance(row["connection"], str) else "Unknown"
             rating_val = (
-                f"{row['rating']:.1f}" if not pd.isna(row["rating"]) else "Unknown"
+                f"{row['rating']:.1f}" if not pd.isna(row["rating"]) else "N/A"
             )
-            votes_val = int(row["votes"]) if not pd.isna(row["votes"]) else 0
             used_price = estimate_used_price(row["price_sgd"])
+            name = str(row["name"])[:26]
             lines.append(
-                f"{Fore.YELLOW}- ID {row['id']}{Style.RESET_ALL}: "
-                f"{Fore.MAGENTA}{row['name']}{Style.RESET_ALL} "
-                f"({row['type']}, connection: {conn}, "
-                f"approx new price: S${row['price_sgd']:.2f}, "
-                f"suggested 2nd-hand: S${used_price:.2f}, "
-                f"rating: {rating_val} "
-                f"from {votes_val} votes)"
+                f"{idx:<3} {name:<26} "
+                f"{str(conn)[:10]:<10} "
+                f"S${row['price_sgd']:>6.0f} "
+                f"S${used_price:>6.0f} "
+                f"{rating_val:>8}"
             )
 
     if not phone_candidates.empty:
@@ -809,18 +819,24 @@ def format_reply(
                 + ", ".join(phone_prefs)
             )
         lines.append(
-            f"{Fore.GREEN}Suggested phones (prices in SGD, approx):{Style.RESET_ALL}"
+            f"{Fore.GREEN}Suggested phones (per device, SGD, approx):{Style.RESET_ALL}"
         )
-        for _, row in phone_candidates.iterrows():
+        header = (
+            f"{'#':<3} {'Brand':<10} {'Model':<20} "
+            f"{'RAM':<5} {'Storage':<8} {'New':>8} {'Used':>8}"
+        )
+        lines.append(header)
+        lines.append("-" * len(header))
+        for idx, (_, row) in enumerate(phone_candidates.iterrows(), start=1):
             used_price = estimate_used_price(row["price_sgd"])
             lines.append(
-                f"{Fore.YELLOW}- ID {row['id']}{Style.RESET_ALL}: "
-                f"{Fore.MAGENTA}{row['brand']} {row['model']}{Style.RESET_ALL} "
-                f"(~S${row['price_sgd']:.0f}, "
-                f"{row['ram_gb']:.0f}GB RAM, {row['storage_gb']:.0f}GB storage, "
-                f"battery {row['battery_mah']:.0f}mAh, "
-                f"rear cameras: {row['rear_cam_mp']}), "
-                f"{Fore.MAGENTA}suggested 2nd-hand:{Style.RESET_ALL} S${used_price:.0f}"
+                f"{idx:<3} "
+                f"{str(row['brand'])[:10]:<10} "
+                f"{str(row['model'])[:20]:<20} "
+                f"{int(row['ram_gb']):<5} "
+                f"{int(row['storage_gb']):<8} "
+                f"S${row['price_sgd']:>6.0f} "
+                f"S${used_price:>6.0f}"
             )
 
     if not ipad_candidates.empty:
@@ -836,19 +852,22 @@ def format_reply(
                 + ", ".join(ipad_prefs)
             )
         lines.append(
-            f"{Fore.GREEN}Suggested iPads / tablets (prices in SGD, approx):{Style.RESET_ALL}"
+            f"{Fore.GREEN}Suggested iPads / tablets (per device, SGD, approx):{Style.RESET_ALL}"
         )
-        for _, row in ipad_candidates.iterrows():
+        header = (
+            f"{'#':<3} {'Model':<24} {'Storage':<10} "
+            f"{'New':>8} {'Used':>8}"
+        )
+        lines.append(header)
+        lines.append("-" * len(header))
+        for idx, (_, row) in enumerate(ipad_candidates.iterrows(), start=1):
             used_price = estimate_used_price(row["price_sgd"])
             lines.append(
-                f"{Fore.YELLOW}- ID {row['id']}{Style.RESET_ALL}: "
-                f"{Fore.MAGENTA}{row['product_name']}{Style.RESET_ALL} "
-                f"({row['storage']}, color: {row['color']}, "
-                f"approx new price: S${row['price_sgd']:.0f}, "
-                f"suggested 2nd-hand: S${used_price:.0f}, "
-                f"country: {row['country']}, year: {row['year']}, "
-                f"segment: {row['segment']}, "
-                f"rating: {row['rating'] if not pd.isna(row['rating']) else 'N/A'})"
+                f"{idx:<3} "
+                f"{str(row['product_name'])[:24]:<24} "
+                f"{str(row['storage'])[:10]:<10} "
+                f"S${row['price_sgd']:>6.0f} "
+                f"S${used_price:>6.0f}"
             )
 
     return "\n".join(lines)

@@ -15,8 +15,9 @@ It demonstrates two core components of the platform:
 - `all_keyboards.csv` – keyboard products with prices and ratings, converted to **approximate SGD** in the bot.
 - `Mobile phone price.csv` – smartphone brand + model + specs (RAM, storage, screen size, cameras, battery, price in USD‑like units), converted to **approximate SGD** in the bot.
 - `apple_global_sales_dataset.csv` – global Apple sales records; only the **iPad** rows are used to suggest iPads / tablets, with prices converted from USD to **approximate SGD**.
-- `fmv_engine.py` – ML model that learns a pricing signal from `laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
-- `specs_to_need_bot.py` – simple NLP + rules to recommend laptops plus accessories (keyboards, phones, iPads) using **SGD (approx.)** prices in the UI, based on a natural‑language description of needs.
+- `fmv_engine.py` – analytics side: ML model that learns a pricing signal from `laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
+- `specs_to_need_bot.py` – assistant side: simple NLP + rules to recommend laptops plus accessories (keyboards, phones, iPads) using **SGD (approx.)** prices, based on a natural‑language description of needs.
+- `web_chatbot.py` – optional Flask wrapper that reuses the same console output in a browser (not required for the core prototype).
 - `requirements.txt` – Python dependencies.
 
 (Figma wireframes for the UI are kept separately in Figma and are referenced in the course presentation.)
@@ -49,7 +50,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-If you don’t want to use `requirements.txt`, the **minimum libraries** needed are:
+If you don’t want to use `requirements.txt`, the **minimum libraries** needed for the console apps are:
 
 ```bash
 pip install pandas scikit-learn colorama
@@ -183,6 +184,29 @@ or:
 ```text
 Looking for an iPad or tablet around 1200 with a wireless keyboard.
 ```
+
+---
+
+### 5. Simple Web UI (`web_chatbot.py`)
+
+If you prefer a browser‑based UI instead of the console, you can run a minimal Flask app that wraps the Specs‑to‑Need Assistant.
+
+**Run**
+
+```bash
+python web_chatbot.py
+```
+
+Then open `http://127.0.0.1:8000` in your browser.  
+You’ll see:
+
+- A **single text box** where you can type the same prompts as in the console.  
+- A **“Get recommendations”** button.  
+- Results rendered as formatted text (without ANSI colour codes), showing:
+  - Quantity and budget  
+  - Recommended laptops, keyboards, phones and iPads (with new vs suggested 2nd‑hand prices)  
+
+The web app uses the existing `recommend_devices` and `format_reply` functions, so the logic stays consistent between console and browser.
 
 ---
 

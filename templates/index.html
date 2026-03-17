@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Specs-to-Need Assistant · Second-hand demo</title>
+  <style>
+    :root { color-scheme: dark; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 60%, #000 100%);
+      color: #e5e7eb;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+    .card {
+      background: #020617;
+      border-radius: 16px;
+      padding: 20px 22px 24px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 4px;
+      color: #e5e7eb;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      margin-bottom: 16px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      resize: vertical;
+      font-size: 0.95rem;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #22c55e;
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.6);
+    }
+    .examples {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+    .examples code {
+      background: #020617;
+      padding: 2px 4px;
+      border-radius: 4px;
+      color: #e5e7eb;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #22c55e, #22d3ee);
+      color: #020617;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    .section-title {
+      margin: 18px 0 4px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+    .summary {
+      margin-top: 14px;
+      font-size: 0.9rem;
+      color: #d1d5db;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.86rem;
+    }
+    th, td {
+      padding: 4px 6px;
+      text-align: left;
+      border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+      white-space: nowrap;
+    }
+    th {
+      font-weight: 600;
+      color: #e5e7eb;
+      background: rgba(15, 23, 42, 0.9);
+    }
+    tr:nth-child(even) td {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    .muted { color: #9ca3af; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <h1>Specs‑to‑Need Assistant</h1>
+      <div class="subtitle">
+        Describe what you need in plain English. The assistant will infer job type, budget and quantity,
+        then suggest second‑hand‑style hardware with both "new‑ish" and used prices.
+      </div>
+
+      <form method="post">
+        <textarea name="query" placeholder="Example: I need 2 gaming laptops under 2500 each, plus a keyboard and phone.">{{ query }}</textarea>
+        <div class="examples">
+          Examples:
+          <code>I need 3 laptops for video editing under 1500, prefer Windows.</code>
+          <code>education ipad around 1200 with keyboard</code>
+          <code>iphone 12 mini, expensive, good battery</code>
+        </div>
+        <button type="submit">Get recommendations</button>
+      </form>
+
+      {% if summary.quantity %}
+      <div class="summary">
+        <div><strong>Quantity:</strong> {{ summary.quantity or 'N/A' }}</div>
+        {% if summary.budget %}
+        <div><strong>Budget per device:</strong> S${{ summary.budget }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if laptops %}
+      <div class="section-title">Laptops (per device, SGD, approx)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Brand</th>
+            <th>Model</th>
+            <th>Qty</th>
+            <th>New</th>
+            <th>Used</th>
+            <th>Total (New)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in laptops %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.brand }}</td>
+            <td>{{ row.model }}</td>
+            <td>{{ summary.quantity or 1 }}</td>
+            <td>S${{ row.new | int }}</td>
+            <td>S${{ row.used | int }}</td>
+            <td>S${{ row.total_new | int }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if keyboards %}
+      <div class="section-title">Keyboards (per device, SGD, approx)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Connection</th>
+            <th>Qty</th>
+            <th>New</th>
+            <th>Used</th>
+            <th>Total (New)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in keyboards %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.name }}</td>
+            <td>{{ row.connection }}</td>
+            <td>{{ summary.quantity or 1 }}</td>
+            <td>S${{ row.new | int }}</td>
+            <td>S${{ row.used | int }}</td>
+            <td>S${{ row.total_new | int }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if phones %}
+      <div class="section-title">Phones (per device, SGD, approx)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Brand</th>
+            <th>Model</th>
+            <th>RAM</th>
+            <th>Storage</th>
+            <th>Qty</th>
+            <th>New</th>
+            <th>Used</th>
+            <th>Total (New)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in phones %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.brand }}</td>
+            <td>{{ row.model }}</td>
+            <td>{{ row.ram_gb }}GB</td>
+            <td>{{ row.storage_gb }}GB</td>
+            <td>{{ summary.quantity or 1 }}</td>
+            <td>S${{ row.new | int }}</td>
+            <td>S${{ row.used | int }}</td>
+            <td>S${{ row.total_new | int }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if ipads %}
+      <div class="section-title">iPads / tablets (per device, SGD, approx)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Model</th>
+            <th>Storage</th>
+            <th>Qty</th>
+            <th>New</th>
+            <th>Used</th>
+            <th>Total (New)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in ipads %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.model }}</td>
+            <td>{{ row.storage }}</td>
+            <td>{{ summary.quantity or 1 }}</td>
+            <td>S${{ row.new | int }}</td>
+            <td>S${{ row.used | int }}</td>
+            <td>S${{ row.total_new | int }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if not (laptops or keyboards or phones or ipads) and query %}
+      <p class="muted">No matching devices found for this query.</p>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
+
