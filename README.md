@@ -11,8 +11,9 @@ It demonstrates two core components of the platform:
 
 ### 1. Project Structure
 
-- `fmv_engine.py` – synthetic data + ML model that predicts fair market value for a device.
-- `specs_to_need_bot.py` – simple NLP + rules to recommend devices from a sample inventory.
+- `laptop_price.csv` – real‑world laptop specifications and prices (new‑device pricing in euros), used as the core dataset. In this prototype, prices are converted to **approximate SGD** using a fixed FX rate.
+- `fmv_engine.py` – ML model that learns a pricing signal from `laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
+- `specs_to_need_bot.py` – simple NLP + rules to recommend laptops from the `laptop_price.csv` inventory, using **SGD (approx.)** prices in the UI, based on a natural‑language description of needs.
 - `requirements.txt` – Python dependencies.
 
 (Figma wireframes for the UI are kept separately in Figma and are referenced in the course presentation.)
@@ -43,63 +44,29 @@ pip install -r requirements.txt
 
 **Goal**
 
-Provide a *data‑driven* fair price estimate for a used enterprise laptop, based on:
+Provide a *data‑driven* fair price estimate for an enterprise laptop, based on:
 
 - Brand, model, CPU
 - RAM, storage size & type
 - GPU type
-- Age (in years)
-- Battery health
-- Cosmetic grade (A/B)
 
-**Dataset structure**
+**Dataset & features**
 
-Inside `fmv_engine.py`, a small synthetic dataset is defined as a list of rows, then converted to a DataFrame:
+The engine now trains on the external CSV `laptop_price.csv` (new‑device prices in euros). From that file, the script engineers the following features and converts prices to SGD using a fixed rate (currently `1 EUR ≈ 1.45 SGD`, configurable in the code):
 
-```python
-data = [
-    # brand, model, cpu, ram_gb, storage_gb, storage_type, gpu_type, age_years, battery_health, grade, price
-    ["Dell", "Latitude 7420", "i5", 8, 256, "SSD", "integrated", 1, 95, "A", 950],
-    ...
-]
-
-columns = [
-    "brand",          # manufacturer, e.g. Dell, HP, Lenovo, Apple
-    "model",          # specific model name, e.g. Latitude 7420
-    "cpu",            # CPU family/chip, e.g. i5, i7, M1
-    "ram_gb",         # RAM size in GB (8, 16, etc.)
-    "storage_gb",     # storage size in GB (256, 512, 1000)
-    "storage_type",   # storage type, e.g. SSD (could be HDD/SSD in bigger dataset)
-    "gpu_type",       # graphics type: "integrated" or "dedicated"
-    "age_years",      # how many years old the device is
-    "battery_health", # battery condition as a percentage (0–100)
-    "grade",          # cosmetic/overall grade, e.g. A or B
-    "price",          # actual resale price in SGD (target for prediction)
-]
-```
-
-- All columns **except `price`** are **input features** (`X`).  
-- `price` is the **label** (`y`) the model learns to predict.
-
-**Column meanings (plain English)**
-
-- **`brand`** – laptop manufacturer (Dell, HP, Lenovo, Apple, etc.).  
-- **`model`** – product line / model name (e.g. Latitude 7420, ThinkPad T14, MacBook Pro 13).  
-- **`cpu`** – CPU family or chip (e.g. i5, i7, M1); higher‑end CPUs usually give better performance and value.  
-- **`ram_gb`** – amount of RAM in gigabytes; higher RAM helps with multitasking and heavy apps.  
-- **`storage_gb`** – internal storage size in gigabytes (how much data/apps you can store).  
-- **`storage_type`** – type of storage drive; SSD is faster than HDD and usually more valuable.  
-- **`gpu_type`** – `"integrated"` (built into CPU, good for office use) or `"dedicated"` (separate GPU, better for video editing/graphics).  
-- **`age_years`** – how many years the device has been in use; older devices usually have lower resale value.  
-- **`battery_health`** – battery condition as a percentage of original capacity (100% ≈ new, 80% = 80% of original).  
-- **`grade`** – overall cosmetic/functional condition:  
-  - **A‑grade**: very good condition, minimal wear, fully functional, higher value.  
-  - **B‑grade**: visible but acceptable signs of use (scratches, small dents), still fully functional, slightly lower value.  
-- **`price` (SGD)** – the resale price in Singapore dollars that the model is trying to predict from all the other columns.
+- **`brand`** – from `Company` (laptop manufacturer, e.g. Dell, HP, Lenovo, Apple).  
+- **`model`** – from `Product` (specific model name).  
+- **`cpu`** – from `Cpu` (full CPU string, e.g. `Intel Core i5 8250U 1.6GHz`).  
+- **`ram_gb`** – parsed from `Ram` (e.g. `"8GB"` → `8`).  
+- **`storage_gb`** – primary storage capacity in GB, parsed from `Memory` (handles values like `256GB SSD`, `128GB SSD + 1TB HDD`).  
+- **`storage_type`** – `"SSD"` or `"HDD"`, inferred from `Memory`.  
+- **`gpu_type`** – `"integrated"` vs `"dedicated"`, inferred from `Gpu` (Nvidia/AMD treated as dedicated).  
+- **`price_eur`** – the price from `Price_euros`.  
+- **`price_sgd`** – price converted from euros to SGD (approx.) used as the **label** (`y`) the model learns to predict.
 
 **How it works**
 
-1. The synthetic dataset above is loaded into a Pandas DataFrame.  
+1. The CSV dataset is loaded into a Pandas DataFrame, feature‑engineered into the columns above, and prices are converted from euros to SGD (approx.).  
 2. Categorical features are one‑hot encoded; numeric features are passed through.  
 3. A `RandomForestRegressor` is trained inside an `sklearn` `Pipeline`.  
 4. The function `predict_fmv(device_dict)` takes a Python `dict` describing one device and returns a predicted price.  
@@ -119,50 +86,44 @@ You’ll see a demo R² score plus a predicted FMV price printed to the console.
 
 **Goal**
 
-Act as a simple “virtual CTO” for non‑technical SME owners:
+Act as a simple “virtual CTO” for non‑technical SME owners, focused on **laptops only**:
 
 - User describes needs in plain English (e.g. “laptop for video editing under $1500”).  
 - The bot infers the job type, budget, and OS preference.  
 - It recommends suitable devices from a small inventory.
 
-**Inventory dataset**
+**Inventory dataset (from CSV)**
 
-Inside `specs_to_need_bot.py`, the sample inventory looks like:
+Instead of a tiny hard‑coded list, the assistant builds its inventory directly from `laptop_price.csv`:
 
-```python
-inventory_data = [
-    # id, brand, model, cpu, ram_gb, storage_gb, storage_type, gpu_type, price
-    [1, "Dell", "Latitude 7420", "i5", 8, 256, "SSD", "integrated", 900],
-    ...
-]
-```
-
-Columns:
-
-- `id` – internal ID of the listing  
-- `brand`, `model`, `cpu` – device identity/specs  
-- `ram_gb`, `storage_gb`, `storage_type` – performance‑related specs  
-- `gpu_type` – `"integrated"` or `"dedicated"`  
-- `price` – listing price in USD
+- `id` – from `laptop_ID` (internal ID of the listing).  
+- `brand` – from `Company`.  
+- `model` – from `Product`.  
+- `cpu` – from `Cpu`.  
+- `ram_gb` – parsed from `Ram`.  
+- `storage_gb`, `storage_type` – parsed from `Memory` (SSD / HDD capacity).  
+- `gpu_type` – `"integrated"` or `"dedicated"`, inferred from `Gpu`.  
+- `price` – from `Price_euros` (used as price per device).
 
 **How it works**
 
 1. **NLP parsing (`parse_requirements`)**
    - Uses regex and keyword checks to extract:
-     - `budget` (first number in the text)
+     - `budget` (first number in the text, treated as SGD per device)
      - `quantity` (e.g. “3 laptops”)
      - `os_pref` (`mac`, `windows`, or `any`)
-     - `job_function` (video editing, accounting, data science, software dev, or general office)
+     - `job_function` (high‑level “need” such as video editing, creative design, accounting, data science, software dev, student use, gaming, or general office), inferred from keywords in the sentence.
 2. **Specs mapping (`job_to_min_specs`)**
-   - Maps each `job_function` to minimum recommended specs, e.g.:
-     - Video editing → 16GB RAM, 512GB SSD, dedicated GPU
-     - Accounting → 8GB RAM, 256GB SSD, integrated GPU is fine
+   - Each `job_function` is mapped to a simple **minimum spec recipe**:
+     - Video editing / creative design / gaming → **16GB RAM**, **512GB SSD**, **dedicated GPU**
+     - Data science / software development → **16GB RAM**, **512GB SSD**, **integrated GPU OK**
+     - Accounting / student use / general office → **8GB RAM**, **256GB SSD**, **integrated GPU OK**
 3. **Recommendation (`recommend_devices`)**
-   - Filters the inventory by:
-     - Minimum RAM and storage
-     - GPU requirement
-     - Budget per device
-     - OS preference
+   - Filters the CSV‑based inventory by:
+     - Minimum RAM (`min_ram`) and storage (`min_storage`)
+     - GPU requirement (`needs_gpu`)
+     - Budget per device in SGD
+     - OS preference (Mac vs Windows)
    - Returns up to `top_k` cheapest matching devices.
 4. **Formatting (`format_reply`)**
    - Generates a human‑readable explanation with:

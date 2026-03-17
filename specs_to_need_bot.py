@@ -1,20 +1,61 @@
 import re
+
 import pandas as pd
+from colorama import Fore, Style, init as colorama_init
 
 
-# ---------- 1. Sample inventory (simulated marketplace listings) ----------
-inventory_data = [
-    # id, brand, model, cpu, ram_gb, storage_gb, storage_type, gpu_type, price
-    [1, "Dell", "Latitude 7420", "i5", 8, 256, "SSD", "integrated", 900],
-    [2, "Dell", "Latitude 7420", "i7", 16, 512, "SSD", "integrated", 1150],
-    [3, "Lenovo", "ThinkPad T14", "i5", 16, 512, "SSD", "integrated", 1050],
-    [4, "Lenovo", "ThinkPad T14", "i7", 16, 512, "SSD", "integrated", 1250],
-    [5, "HP", "EliteBook 840", "i5", 8, 256, "SSD", "integrated", 800],
-    [6, "Apple", "MacBook Pro 13", "M1", 8, 256, "SSD", "integrated", 1400],
-    [7, "Apple", "MacBook Pro 13", "M1", 16, 512, "SSD", "integrated", 1800],
-    [8, "Lenovo", "ThinkPad X1 Carbon", "i7", 16, 512, "SSD", "integrated", 1350],
-    [9, "Dell", "G15", "i7", 16, 1000, "SSD", "dedicated", 1500],
-]
+# Simple constant FX rate used for this prototype
+EUR_TO_SGD = 1.45
+
+
+# Initialize colorama for Windows terminals
+colorama_init(autoreset=True)
+
+
+def _parse_ram_gb(ram_str: str) -> int:
+    if not isinstance(ram_str, str):
+        return 0
+    match = re.search(r"(\d+)", ram_str)
+    return int(match.group(1)) if match else 0
+
+
+def _parse_storage(memory_str: str) -> tuple[int, str]:
+    if not isinstance(memory_str, str):
+        return 0, "unknown"
+
+    parts = memory_str.split("+")
+    primary_part = parts[0].strip()
+
+    gb_match = re.search(r"(\d+)\s*GB", primary_part, flags=re.IGNORECASE)
+    tb_match = re.search(r"(\d+)\s*TB", primary_part, flags=re.IGNORECASE)
+
+    storage_gb = 0
+    if gb_match:
+        storage_gb = int(gb_match.group(1))
+    elif tb_match:
+        storage_gb = int(tb_match.group(1)) * 1024
+
+    storage_type = "HDD"
+    lowered = primary_part.lower()
+    if "ssd" in lowered or "flash" in lowered:
+        storage_type = "SSD"
+
+    return storage_gb, storage_type
+
+
+def _derive_gpu_type(gpu_str: str) -> str:
+    if not isinstance(gpu_str, str):
+        return "integrated"
+    lowered = gpu_str.lower()
+    if "nvidia" in lowered or "radeon" in lowered:
+        return "dedicated"
+    return "integrated"
+
+
+# ---------- 1. Inventory from CSV (simulated marketplace listings) ----------
+# The source file is not UTF‑8 encoded, so we specify a
+# more permissive encoding to avoid UnicodeDecodeError.
+raw_df = pd.read_csv("laptop_price.csv", encoding="latin1")
 
 inventory_cols = [
     "id",
@@ -27,7 +68,23 @@ inventory_cols = [
     "gpu_type",
     "price",
 ]
-inventory = pd.DataFrame(inventory_data, columns=inventory_cols)
+
+inventory = pd.DataFrame()
+inventory["id"] = raw_df["laptop_ID"]
+inventory["brand"] = raw_df["Company"]
+inventory["model"] = raw_df["Product"]
+inventory["cpu"] = raw_df["Cpu"]
+inventory["ram_gb"] = raw_df["Ram"].apply(_parse_ram_gb)
+inventory[["storage_gb", "storage_type"]] = raw_df["Memory"].apply(
+    lambda s: pd.Series(_parse_storage(s))
+)
+inventory["gpu_type"] = raw_df["Gpu"].apply(_derive_gpu_type)
+inventory["price_eur"] = raw_df["Price_euros"]
+inventory["price_sgd"] = inventory["price_eur"] * EUR_TO_SGD
+
+# Basic cleanup to avoid obviously bad rows
+inventory = inventory[inventory["ram_gb"] > 0]
+inventory = inventory[inventory["storage_gb"] > 0]
 
 
 # ---------- 2. NLP parsing ----------
@@ -37,11 +94,23 @@ def parse_requirements(text: str) -> dict:
 
     # Quantity (not used directly in filtering, but useful for totals)
     qty_match = re.search(r"(\d+)\s*(laptop|pc|computer|computers|laptops)", text_lower)
-    quantity = int(qty_match.group(1)) if qty_match else 1
-
-    # For budget parsing, ignore the quantity part so "3 laptops" is not treated as $3
+    quantity_span = None
     if qty_match:
-        start, end = qty_match.span(1)  # just the number part
+        quantity = int(qty_match.group(1))
+        quantity_span = qty_match.span(1)
+    else:
+        # Fallback: phrases like "for 2" or "for two" (numeric only here)
+        qty_for_match = re.search(r"for\s+(\d+)\b", text_lower)
+        if qty_for_match:
+            quantity = int(qty_for_match.group(1))
+            quantity_span = qty_for_match.span(1)
+        else:
+            quantity = 1
+
+    # For budget parsing, ignore the quantity part so "3 laptops" or "for 2"
+    # is not treated as the budget
+    if quantity_span:
+        start, end = quantity_span  # just the number part
         text_for_budget = text_lower[:start] + text_lower[end:]
     else:
         text_for_budget = text_lower
@@ -201,9 +270,9 @@ def recommend_devices(user_text: str, top_k: int = 3):
     if spec["needs_gpu"]:
         candidates = candidates[candidates["gpu_type"] == "dedicated"]
 
-    # Budget filter (per device)
+    # Budget filter (per device), interpreted as SGD
     if req["budget"]:
-        candidates = candidates[candidates["price"] <= req["budget"]]
+        candidates = candidates[candidates["price_sgd"] <= req["budget"]]
 
     # OS preference
     if req["os_pref"] == "mac":
@@ -211,12 +280,12 @@ def recommend_devices(user_text: str, top_k: int = 3):
     elif req["os_pref"] == "windows":
         candidates = candidates[candidates["brand"] != "Apple"]
 
-    candidates = candidates.sort_values("price").head(top_k)
+    candidates = candidates.sort_values("price_sgd").head(top_k)
     return req, candidates
 
 
 def format_reply(req: dict, candidates: pd.DataFrame) -> str:
-    """Format a human-readable reply for console or UI."""
+    """Format a human-readable (and slightly colorful) reply for console or UI."""
     job_map = {
         "video_editing": "Video Editing",
         "creative_design": "Photo / Graphic Design",
@@ -232,12 +301,14 @@ def format_reply(req: dict, candidates: pd.DataFrame) -> str:
     base_spec = job_to_min_specs(req["job_function"])
 
     lines = []
-    lines.append(f"Interpreted need: {job_label}")
-    lines.append(f"Quantity: {req['quantity']} device(s)")
+    lines.append(f"{Fore.CYAN}Interpreted need:{Style.RESET_ALL} {job_label}")
+    lines.append(f"{Fore.CYAN}Quantity:{Style.RESET_ALL} {req['quantity']} device(s)")
     if req["budget"]:
-        lines.append(f"Budget per device: about ${req['budget']}")
+        lines.append(
+            f"{Fore.CYAN}Budget per device:{Style.RESET_ALL} about S${req['budget']}"
+        )
     lines.append(
-        "Recommended minimum specs: "
+        f"{Fore.CYAN}Recommended minimum specs:{Style.RESET_ALL} "
         f"{base_spec['min_ram']}GB RAM, "
         f"{base_spec['min_storage']}GB SSD, "
         f"{'dedicated GPU' if base_spec['needs_gpu'] else 'integrated GPU OK'}"
@@ -246,19 +317,23 @@ def format_reply(req: dict, candidates: pd.DataFrame) -> str:
 
     if candidates.empty:
         lines.append(
-            "No matching devices found in the current inventory for this budget/spec."
+            f"{Fore.RED}No matching devices found in the current inventory for this budget/spec.{Style.RESET_ALL}"
         )
         return "\n".join(lines)
 
-    lines.append("Top matching devices (per device):")
+    lines.append(
+        f"{Fore.GREEN}Top matching devices (per device, prices in SGD, approx):{Style.RESET_ALL}"
+    )
     for _, row in candidates.iterrows():
-        total_price = row["price"] * req["quantity"]
+        price_sgd = row["price_sgd"]
+        total_price = price_sgd * req["quantity"]
         lines.append(
-            f"- ID {row['id']}: {row['brand']} {row['model']} "
+            f"{Fore.YELLOW}- ID {row['id']}{Style.RESET_ALL}: "
+            f"{Fore.MAGENTA}{row['brand']} {row['model']}{Style.RESET_ALL} "
             f"({row['cpu']}, {row['ram_gb']}GB RAM, {row['storage_gb']}GB {row['storage_type']}, "
             f"GPU: {row['gpu_type']}), "
-            f"Price per device: ${row['price']}, "
-            f"Estimated total for {req['quantity']}: ${total_price}"
+            f"{Fore.GREEN}Price per device:{Style.RESET_ALL} S${price_sgd:.0f}, "
+            f"{Fore.GREEN}Estimated total for {req['quantity']}:{Style.RESET_ALL} S${total_price:.0f}"
         )
 
     return "\n".join(lines)
