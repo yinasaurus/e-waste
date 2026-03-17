@@ -199,6 +199,7 @@ def parse_requirements(text: str) -> dict:
         or "vscode" in text_lower
         or "visual studio" in text_lower
         or "github" in text_lower
+        or "app" in text_lower
     ):
         job = "software_dev"
     elif (
