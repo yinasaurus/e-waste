@@ -12,8 +12,11 @@ It demonstrates two core components of the platform:
 ### 1. Project Structure
 
 - `laptop_price.csv` – real‑world laptop specifications and prices (new‑device pricing in euros), used as the core dataset. In this prototype, prices are converted to **approximate SGD** using a fixed FX rate.
+- `all_keyboards.csv` – keyboard products with prices and ratings, converted to **approximate SGD** in the bot.
+- `Mobile phone price.csv` – smartphone brand + model + specs (RAM, storage, screen size, cameras, battery, price in USD‑like units), converted to **approximate SGD** in the bot.
+- `apple_global_sales_dataset.csv` – global Apple sales records; only the **iPad** rows are used to suggest iPads / tablets, with prices converted from USD to **approximate SGD**.
 - `fmv_engine.py` – ML model that learns a pricing signal from `laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
-- `specs_to_need_bot.py` – simple NLP + rules to recommend laptops from the `laptop_price.csv` inventory, using **SGD (approx.)** prices in the UI, based on a natural‑language description of needs.
+- `specs_to_need_bot.py` – simple NLP + rules to recommend laptops plus accessories (keyboards, phones, iPads) using **SGD (approx.)** prices in the UI, based on a natural‑language description of needs.
 - `requirements.txt` – Python dependencies.
 
 (Figma wireframes for the UI are kept separately in Figma and are referenced in the course presentation.)
@@ -24,18 +27,32 @@ It demonstrates two core components of the platform:
 
 **Prerequisites**
 
-- Python 3.9+ installed
-- `pip` available on your system
+- Python 3.9+ installed (Python 3.11+ also works – you’re using this now).  
+- `pip` available on your system.  
+- Recommended to use a virtual environment (`python -m venv .venv` then activate it) so packages stay isolated to this project.
 
 **Steps**
 
 ```bash
-# 1. Clone this repository
+# 1. Clone this repository (or open the folder in Cursor)
 git clone https://github.com/<your-username>/<your-repo-name>.git
 cd <your-repo-name>
 
-# 2. Install dependencies
+# 2. (Optional but recommended) create and activate a virtual env
+python -m venv .venv
+# On Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# On CMD:
+.venv\Scripts\activate.bat
+
+# 3. Install dependencies
 pip install -r requirements.txt
+```
+
+If you don’t want to use `requirements.txt`, the **minimum libraries** needed are:
+
+```bash
+pip install pandas scikit-learn colorama
 ```
 
 ---
@@ -69,8 +86,14 @@ The engine now trains on the external CSV `laptop_price.csv` (new‑device price
 1. The CSV dataset is loaded into a Pandas DataFrame, feature‑engineered into the columns above, and prices are converted from euros to SGD (approx.).  
 2. Categorical features are one‑hot encoded; numeric features are passed through.  
 3. A `RandomForestRegressor` is trained inside an `sklearn` `Pipeline`.  
-4. The function `predict_fmv(device_dict)` takes a Python `dict` describing one device and returns a predicted price.  
-5. In `__main__`, the script predicts FMV for a sample device and prints the result.
+4. The function `predict_fmv(device_dict)` takes a Python `dict` describing one device and returns a predicted price (FMV, in SGD).  
+5. A small helper `estimate_used_price(new_price, age_years, condition, rarity)` applies a **second‑hand heuristic**:  
+   - Starts at **≈ 66% of the FMV** (2/3 rule mentioned in second‑hand forums).  
+   - Optionally reduces value for older devices (e.g. >3, >5, >8 years).  
+   - Adjusts for condition (e.g. A/mint vs B/fair vs poor/parts) and can slightly increase value for rare/discontinued items.  
+6. In `__main__`, the script predicts FMV for a sample device and prints both:  
+   - **Predicted Fair Market Value (new‑ish, SGD)**.  
+   - **Suggested 2nd‑hand asking price (SGD)** computed via the heuristic above.
 
 **Run**
 
@@ -86,50 +109,62 @@ You’ll see a demo R² score plus a predicted FMV price printed to the console.
 
 **Goal**
 
-Act as a simple “virtual CTO” for non‑technical SME owners, focused on **laptops only**:
+Act as a simple “virtual CTO” for non‑technical SME owners:
 
-- User describes needs in plain English (e.g. “laptop for video editing under $1500”).  
-- The bot infers the job type, budget, and OS preference.  
-- It recommends suitable devices from a small inventory.
+- User describes needs in plain English (e.g. “gaming laptop under 2500 with mouse, keyboard, phone and iPad”).  
+- The bot infers the job type, budget, quantity, OS preference, and which **device types** are requested.  
+- It recommends suitable **laptops plus optional accessories** (mice, keyboards, phones, iPads/tablets) from the CSV inventories.
 
-**Inventory dataset (from CSV)**
+**Inventories (from CSVs)**
 
-Instead of a tiny hard‑coded list, the assistant builds its inventory directly from `laptop_price.csv`:
-
-- `id` – from `laptop_ID` (internal ID of the listing).  
-- `brand` – from `Company`.  
-- `model` – from `Product`.  
-- `cpu` – from `Cpu`.  
-- `ram_gb` – parsed from `Ram`.  
-- `storage_gb`, `storage_type` – parsed from `Memory` (SSD / HDD capacity).  
-- `gpu_type` – `"integrated"` or `"dedicated"`, inferred from `Gpu`.  
-- `price` – from `Price_euros` (used as price per device).
+- **Laptops** – from `laptop_price.csv` (same features as the FMV engine, with prices converted from EUR to SGD).  
+- **Keyboards** – from `all_keyboards.csv` (price parsed and converted from EUR‑like units to approximate SGD, with ratings and votes).  
+- **Phones** – from `Mobile phone price.csv` (brand + model, RAM, storage, screen size, cameras, battery; prices converted from USD‑like units to approximate SGD).  
+- **iPads / tablets** – from `apple_global_sales_dataset.csv`, filtered to `category == "iPad"`; `discounted_price_usd` converted to approximate SGD.
 
 **How it works**
 
 1. **NLP parsing (`parse_requirements`)**
    - Uses regex and keyword checks to extract:
-     - `budget` (first number in the text, treated as SGD per device)
-     - `quantity` (e.g. “3 laptops”)
+     - `budget` (first number in the text, treated as SGD per laptop/phone/tablet where prices exist)
+     - `quantity` (e.g. “3 laptops”, “for 2”)
      - `os_pref` (`mac`, `windows`, or `any`)
-     - `job_function` (high‑level “need” such as video editing, creative design, accounting, data science, software dev, student use, gaming, or general office), inferred from keywords in the sentence.
-2. **Specs mapping (`job_to_min_specs`)**
+     - `job_function` (high‑level “need” such as video editing, creative design, accounting, data science, software dev, student use, gaming, or general office), inferred from keywords.
+     - Flags for which extras are requested: keyboard, phone, tablet/iPad.
+   - Includes a small **typo normaliser** for common misspellings (e.g. `ipone` → `iphone`, `labtop` → `laptop`, `andriod` → `android`).
+   - Avoids mis‑treating model numbers as budgets (e.g. “iphone 12” will not set budget to \$12).
+2. **Specs mapping for laptops (`job_to_min_specs`)**
    - Each `job_function` is mapped to a simple **minimum spec recipe**:
      - Video editing / creative design / gaming → **16GB RAM**, **512GB SSD**, **dedicated GPU**
      - Data science / software development → **16GB RAM**, **512GB SSD**, **integrated GPU OK**
      - Accounting / student use / general office → **8GB RAM**, **256GB SSD**, **integrated GPU OK**
-3. **Recommendation (`recommend_devices`)**
-   - Filters the CSV‑based inventory by:
-     - Minimum RAM (`min_ram`) and storage (`min_storage`)
-     - GPU requirement (`needs_gpu`)
-     - Budget per device in SGD
-     - OS preference (Mac vs Windows)
-   - Returns up to `top_k` cheapest matching devices.
+3. **Recommendations (`recommend_devices`)**
+   - **Laptops** – filtered by min RAM/storage, GPU requirement, OS preference, and budget in SGD, then:
+     - Sorted by **cheapest first**, unless the user says “expensive / premium / high end”, in which case **most expensive** laptops are shown first.  
+     - For each laptop, a **suggested 2nd‑hand asking price** is computed using the same `estimate_used_price` heuristic (2/3‑of‑new plus small adjustments for age/condition/rarity when available).  
+   - **Keyboards** – filtered (when requested) by connection preference (wireless / Bluetooth / USB), then:
+     - Sorted by **highest rating + most votes**, or by **highest price** if the user asks for expensive / premium options.  
+     - Each keyboard line also shows a **suggested 2nd‑hand price** based on the same 2/3 rule.  
+   - **Phones** – built from `Mobile phone price.csv`, filtered by:
+     - Budget in SGD (if provided)  
+     - Brand hints (e.g. `iphone` / `apple`, `samsung`, `oneplus`)  
+     - Simple model matching for iPhones like `"iphone 12 mini"` when specified  
+     - Then sorted by specs/price, or by **highest price** if the user says “expensive / premium”.  
+     - A **suggested 2nd‑hand price** is shown next to each new‑ish price.  
+   - **iPads / tablets** – filtered (when requested) by:
+     - Budget in SGD (if provided)  
+     - Education / student hints (filters to education segment when “education / student / school” is mentioned)  
+     - Then sorted by **rating + price**, or **highest price** when the user asks for expensive / premium tablets.  
+     - A **suggested 2nd‑hand price** is shown for each iPad/tablet line.  
 4. **Formatting (`format_reply`)**
-   - Generates a human‑readable explanation with:
-     - Interpreted need and budget
-     - Recommended specs
-     - Top matching devices
+   - Generates a colorful, human‑readable console reply that includes:
+     - **Summary header**: quantity and budget (plus interpreted need + minimum laptop specs only when laptops are relevant).  
+     - **Clear sections** with dividers for:
+       - Top matching laptops (with per‑device and total price in SGD)  
+       - Suggested keyboards (with connection, rating, votes, price in SGD)  
+       - Suggested phones (brand + model + key specs, price in SGD)  
+       - Suggested iPads/tablets (model, storage, segment, price in SGD).  
+     - Friendlier handling of missing values, e.g. `connection: Unknown` instead of `NaN`.
 
 **Run**
 
@@ -140,26 +175,14 @@ python specs_to_need_bot.py
 Then type queries like:
 
 ```text
-I need 3 laptops for video editing under $1600, prefer Windows.
+I need 2 gaming laptops under 2500 each, plus a keyboard and phone.
 ```
 
-The console will show:
+or:
 
-- Interpreted need  
-- Quantity requested  
-- Recommended minimum specs  
-- Top matching devices from the sample inventory, including:  
-  - price **per device**  
-  - **estimated total** for the requested quantity  
-
-**Example queries you can try**
-
-- `I need 3 laptops for video editing under 1600, prefer Windows.`  
-- `Need a laptop for photo editing and Photoshop under 1500.`  
-- `Looking for a laptop for a school student, budget 900.`  
-- `We want a gaming laptop under 2000.`  
-- `We need 5 computers for accounting and finance work, budget 800 each.`  
-- `Looking for a MacBook for data science and ML, around 2000.`  
+```text
+Looking for an iPad or tablet around 1200 with a wireless keyboard.
+```
 
 ---
 

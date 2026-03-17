@@ -17,6 +17,54 @@ EUR_TO_SGD = 1.45
 colorama_init(autoreset=True)
 
 
+def estimate_used_price(
+    new_price: float,
+    age_years: float | None = None,
+    condition: str | None = None,
+    rarity: str | None = None,
+) -> float:
+    """
+    Simple 2nd-hand pricing heuristic for this prototype.
+    - Start at 2/3 of new.
+    - Age reduces value a bit.
+    - Bad condition reduces further, mint slightly increases.
+    - Rare / discontinued items can be nudged up.
+    """
+    if new_price is None:
+        return 0.0
+
+    price = float(new_price) * 0.66  # base 2/3 rule
+
+    # Age adjustment (rough, optional)
+    if age_years is not None:
+        if age_years > 8:
+            price *= 0.6
+        elif age_years > 5:
+            price *= 0.7
+        elif age_years > 3:
+            price *= 0.8
+        elif age_years > 1:
+            price *= 0.9
+
+    # Condition string such as "A" / "B" or "mint"
+    if condition:
+        cond = str(condition).lower()
+        if "mint" in cond or "like new" in cond or cond == "a":
+            price *= 1.05
+        elif cond == "b" or "fair" in cond or "used" in cond:
+            price *= 0.9
+        elif "poor" in cond or "parts" in cond:
+            price *= 0.6
+
+    # Rarity / desirability
+    if rarity:
+        rare = str(rarity).lower()
+        if "rare" in rare or "sought" in rare or "discontinued" in rare:
+            price *= 1.1
+
+    return round(price, 2)
+
+
 def _parse_ram_gb(ram_str: str) -> int:
     """Convert strings like '8GB' to integer 8."""
     if not isinstance(ram_str, str):
@@ -148,12 +196,25 @@ if __name__ == "__main__":
         "storage_gb": 512,
         "storage_type": "SSD",
         "gpu_type": "integrated",
+        # optional fields used by estimate_used_price
+        "age_years": 3,
+        "grade": "B",
     }
 
     fmv_price = predict_fmv(sample_device)
+    used_price = estimate_used_price(
+        new_price=fmv_price,
+        age_years=sample_device.get("age_years"),
+        condition=sample_device.get("grade"),
+    )
     print(f"\n{Fore.CYAN}Sample device:{Style.RESET_ALL} {sample_device}")
     print(
         f"{Fore.GREEN}Predicted Fair Market Value (SGD, approx):{Style.RESET_ALL} "
         f"S${fmv_price:.2f}"
+    )
+    print(
+        f"{Fore.MAGENTA}Suggested 2nd-hand asking price "
+        f"(2/3 rule + age/condition):{Style.RESET_ALL} "
+        f"S${used_price:.2f}"
     )
 
