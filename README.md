@@ -36,8 +36,8 @@ It demonstrates two core components:
 
 ```bash
 # 1. Clone this repository (or open the folder in Cursor)
-git clone https://github.com/<your-username>/<your-repo-name>.git
-cd <your-repo-name>
+git clone https://github.com/yinasaurus/e-waste.git
+cd e-waste
 
 # 2. (Optional but recommended) create and activate a virtual env
 python -m venv .venv
@@ -54,6 +54,20 @@ If you don’t want to use `requirements.txt`, the **minimum libraries** needed 
 
 ```bash
 pip install pandas scikit-learn colorama
+```
+
+**Quick start**
+
+```bash
+# Analytics side – FMV engine (console)
+python fmv_engine.py
+
+# Assistant side – console
+python specs_to_need_bot.py
+
+# Assistant side – web UI (optional)
+python web_chatbot.py
+# then open http://127.0.0.1:8000 in your browser
 ```
 
 ---
