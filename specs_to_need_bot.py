@@ -241,21 +241,26 @@ def parse_requirements(text: str) -> dict:
         text_lower,
     )
     qty_pattern_for = re.findall(r"for\s+(\d+)\b", text_lower)
+    qty_pattern_need = re.findall(r"need\s+(\d+)\b", text_lower)
 
-    # Derive quantity: prefer explicit "3 laptops" etc., else "for 2", else 1
+    # Derive quantity: prefer explicit "3 laptops" etc., else "for 2" / "need 2", else 1
     if qty_pattern_items:
         quantity = int(qty_pattern_items[0][0])
     elif qty_pattern_for:
         quantity = int(qty_pattern_for[0])
+    elif qty_pattern_need:
+        quantity = int(qty_pattern_need[0])
     else:
         quantity = 1
 
     # For budget parsing, remove ALL quantity numbers from the text so that
-    # they are not misinterpreted as a budget (e.g. "1 ipad" → not budget=1)
+    # they are not misinterpreted as a budget (e.g. "1 ipad" or "need 2" → not budget=1/2)
     text_for_budget = text_lower
     for num, _ in qty_pattern_items:
         text_for_budget = re.sub(rf"\b{num}\b", "", text_for_budget)
     for num in qty_pattern_for:
+        text_for_budget = re.sub(rf"\b{num}\b", "", text_for_budget)
+    for num in qty_pattern_need:
         text_for_budget = re.sub(rf"\b{num}\b", "", text_for_budget)
 
     # Also remove numbers that are clearly part of iPhone model names,

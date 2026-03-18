@@ -145,10 +145,8 @@
             <th>#</th>
             <th>Brand</th>
             <th>Model</th>
-            <th>Qty</th>
             <th>New</th>
             <th>Used</th>
-            <th>Total (New)</th>
           </tr>
         </thead>
         <tbody>
@@ -157,10 +155,8 @@
             <td>{{ loop.index }}</td>
             <td>{{ row.brand }}</td>
             <td>{{ row.model }}</td>
-            <td>{{ summary.quantity or 1 }}</td>
             <td>S${{ row.new | int }}</td>
             <td>S${{ row.used | int }}</td>
-            <td>S${{ row.total_new | int }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -175,10 +171,8 @@
             <th>#</th>
             <th>Name</th>
             <th>Connection</th>
-            <th>Qty</th>
             <th>New</th>
             <th>Used</th>
-            <th>Total (New)</th>
           </tr>
         </thead>
         <tbody>
@@ -187,10 +181,8 @@
             <td>{{ loop.index }}</td>
             <td>{{ row.name }}</td>
             <td>{{ row.connection }}</td>
-            <td>{{ summary.quantity or 1 }}</td>
             <td>S${{ row.new | int }}</td>
             <td>S${{ row.used | int }}</td>
-            <td>S${{ row.total_new | int }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -207,10 +199,8 @@
             <th>Model</th>
             <th>RAM</th>
             <th>Storage</th>
-            <th>Qty</th>
             <th>New</th>
             <th>Used</th>
-            <th>Total (New)</th>
           </tr>
         </thead>
         <tbody>
@@ -221,10 +211,8 @@
             <td>{{ row.model }}</td>
             <td>{{ row.ram_gb }}GB</td>
             <td>{{ row.storage_gb }}GB</td>
-            <td>{{ summary.quantity or 1 }}</td>
             <td>S${{ row.new | int }}</td>
             <td>S${{ row.used | int }}</td>
-            <td>S${{ row.total_new | int }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -239,10 +227,8 @@
             <th>#</th>
             <th>Model</th>
             <th>Storage</th>
-            <th>Qty</th>
             <th>New</th>
             <th>Used</th>
-            <th>Total (New)</th>
           </tr>
         </thead>
         <tbody>
@@ -251,14 +237,18 @@
             <td>{{ loop.index }}</td>
             <td>{{ row.model }}</td>
             <td>{{ row.storage }}</td>
-            <td>{{ summary.quantity or 1 }}</td>
             <td>S${{ row.new | int }}</td>
             <td>S${{ row.used | int }}</td>
-            <td>S${{ row.total_new | int }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+      {% endif %}
+
+      {% if summary.error %}
+      <p class="muted">{{ summary.error }}</p>
+      {% elif not (laptops or keyboards or phones or ipads) and query %}
+      <p class="muted">No matching devices found for this query.</p>
       {% endif %}
 
       {% if not (laptops or keyboards or phones or ipads) and query %}

@@ -1,11 +1,11 @@
 ## Circular Economy for E‑Waste – Analytics & AI Prototype
 
-This repository contains the **Python prototype** for a B2B circular marketplace that extends the life of corporate IT hardware and helps SMEs buy affordable, fit‑for‑purpose devices.
+This repository contains a **Python prototype** for a B2B circular marketplace that extends the life of corporate IT hardware and helps SMEs buy affordable, fit‑for‑purpose devices.
 
-It demonstrates two core components of the platform:
+It demonstrates two core components:
 
-1. **FMV (Fair Market Value) Pricing Engine** – estimates a fair resale price for used laptops based on specs and condition.  
-2. **Specs‑to‑Need Assistant** – an AI‑style helper that translates business needs (in plain English) into hardware recommendations using a small inventory.
+1. **FMV (Fair Market Value) Pricing Engine** – an analytics module that learns a pricing signal from laptop specs and estimates a fair resale price (FMV) in SGD, then applies a second‑hand discount heuristic.  
+2. **Specs‑to‑Need Assistant** – an assistant that turns natural‑language needs into second‑hand‑style recommendations for laptops, keyboards, phones and iPads, using both new‑ish and suggested used prices.
 
 ---
 
@@ -15,9 +15,9 @@ It demonstrates two core components of the platform:
 - `all_keyboards.csv` – keyboard products with prices and ratings, converted to **approximate SGD** in the bot.
 - `Mobile phone price.csv` – smartphone brand + model + specs (RAM, storage, screen size, cameras, battery, price in USD‑like units), converted to **approximate SGD** in the bot.
 - `apple_global_sales_dataset.csv` – global Apple sales records; only the **iPad** rows are used to suggest iPads / tablets, with prices converted from USD to **approximate SGD**.
-- `fmv_engine.py` – analytics side: ML model that learns a pricing signal from `laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
-- `specs_to_need_bot.py` – assistant side: simple NLP + rules to recommend laptops plus accessories (keyboards, phones, iPads) using **SGD (approx.)** prices, based on a natural‑language description of needs.
-- `web_chatbot.py` – optional Flask wrapper that reuses the same console output in a browser (not required for the core prototype).
+- `fmv_engine.py` – **analytics side**: ML model that learns a pricing signal from `laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
+- `specs_to_need_bot.py` – **assistant side**: simple NLP + rules to recommend laptops plus accessories (keyboards, phones, iPads) using **SGD (approx.)** prices, based on a natural‑language description of needs.
+- `web_chatbot.py` – optional Flask app that exposes the Specs‑to‑Need Assistant in a browser (tables with per‑device and overall totals). The core prototype still works entirely from the console.
 - `requirements.txt` – Python dependencies.
 
 (Figma wireframes for the UI are kept separately in Figma and are referenced in the course presentation.)
@@ -64,9 +64,9 @@ pip install pandas scikit-learn colorama
 
 Provide a *data‑driven* fair price estimate for an enterprise laptop, based on:
 
-- Brand, model, CPU
-- RAM, storage size & type
-- GPU type
+- Brand, model, CPU  
+- RAM, storage size & type  
+- GPU type  
 
 **Dataset & features**
 
@@ -106,15 +106,15 @@ You’ll see a demo R² score plus a predicted FMV price printed to the console.
 
 ---
 
-### 4. Specs‑to‑Need Assistant (`specs_to_need_bot.py`)
+### 4. Specs‑to‑Need Assistant (`specs_to_need_bot.py` & `web_chatbot.py`)
 
 **Goal**
 
 Act as a simple “virtual CTO” for non‑technical SME owners:
 
-- User describes needs in plain English (e.g. “gaming laptop under 2500 with mouse, keyboard, phone and iPad”).  
-- The bot infers the job type, budget, quantity, OS preference, and which **device types** are requested.  
-- It recommends suitable **laptops plus optional accessories** (mice, keyboards, phones, iPads/tablets) from the CSV inventories.
+- User describes needs in plain English (e.g. “gaming laptop under 2500 with keyboard, phone and iPad”).  
+- The assistant infers the job type, budget, quantity, and which **device types** are requested.  
+- It recommends suitable **laptops plus optional accessories** (keyboards, phones, iPads/tablets) from the CSV inventories.
 
 **Inventories (from CSVs)**
 
@@ -157,15 +157,11 @@ Act as a simple “virtual CTO” for non‑technical SME owners:
      - Education / student hints (filters to education segment when “education / student / school” is mentioned)  
      - Then sorted by **rating + price**, or **highest price** when the user asks for expensive / premium tablets.  
      - A **suggested 2nd‑hand price** is shown for each iPad/tablet line.  
-4. **Formatting (`format_reply`)**
-   - Generates a colorful, human‑readable console reply that includes:
-     - **Summary header**: quantity and budget (plus interpreted need + minimum laptop specs only when laptops are relevant).  
-     - **Clear sections** with dividers for:
-       - Top matching laptops (with per‑device and total price in SGD)  
-       - Suggested keyboards (with connection, rating, votes, price in SGD)  
-       - Suggested phones (brand + model + key specs, price in SGD)  
-       - Suggested iPads/tablets (model, storage, segment, price in SGD).  
-     - Friendlier handling of missing values, e.g. `connection: Unknown` instead of `NaN`.
+4. **Formatting**
+   - `specs_to_need_bot.py` produces a colorful, sectioned **console reply** (for quick demos) with:
+     - Quantity and budget  
+     - Top matching laptops / keyboards / phones / iPads with new vs used prices  
+   - `web_chatbot.py` uses the same underlying logic but renders the results in **HTML tables** with per‑device new / used prices for each category.
 
 **Run**
 
@@ -215,5 +211,8 @@ The web app uses the existing `recommend_devices` and `format_reply` functions, 
 - **FMV Engine** – enables consistent, data‑driven pricing of retired corporate devices, helping corporates and refurbishers recover fair value.  
 - **Specs‑to‑Need Assistant** – lowers the technical literacy barrier for SMEs by translating business tasks into appropriate hardware specs and recommendations.  
 
-Together, these components illustrate how **analytics** and **AI** can increase pricing transparency, improve “fit‑for‑purpose” purchasing, and support the circular economy for enterprise hardware.
+Together, these components illustrate how **analytics** and **AI** can increase pricing transparency, improve “fit‑for‑purpose” purchasing, and support the circular economy for enterprise hardware:
+
+- The **analytics side** (`fmv_engine.py`) learns a pricing signal from real‑world laptop data and converts it into both an FMV and a realistic second‑hand asking price (≈ 2/3 of new, adjusted for age/condition/rarity).  
+- The **assistant side** (`specs_to_need_bot.py` + `web_chatbot.py`) lets non‑technical users describe their needs in plain English and receive concrete second‑hand‑style recommendations (laptops, keyboards, phones, iPads) with clear new vs used price guidance, plus simple validation for illogical prompts.
 
