@@ -11,11 +11,12 @@ It demonstrates two core components:
 
 ### 1. Project Structure
 
-- `laptop_price.csv` – real‑world laptop specifications and prices (new‑device pricing in euros), used as the core dataset. In this prototype, prices are converted to **approximate SGD** using a fixed FX rate.
-- `all_keyboards.csv` – keyboard products with prices and ratings, converted to **approximate SGD** in the bot.
-- `Mobile phone price.csv` – smartphone brand + model + specs (RAM, storage, screen size, cameras, battery, price in USD‑like units), converted to **approximate SGD** in the bot.
-- `apple_global_sales_dataset.csv` – global Apple sales records; only the **iPad** rows are used to suggest iPads / tablets, with prices converted from USD to **approximate SGD**.
-- `fmv_engine.py` – **analytics side**: ML model that learns a pricing signal from `laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
+- `data/` – folder containing all CSV datasets (keeps the repo root tidy).  
+  - `data/laptop_price.csv` – real‑world laptop specifications and prices (new‑device pricing in euros), used as the core dataset. In this prototype, prices are converted to **approximate SGD** using a fixed FX rate.
+  - `data/all_keyboards.csv` – keyboard products with prices and ratings, converted to **approximate SGD** in the bot.
+  - `data/Mobile phone price.csv` – smartphone brand + model + specs (RAM, storage, screen size, cameras, battery, price in USD‑like units), converted to **approximate SGD** in the bot.
+  - `data/apple_global_sales_dataset.csv` – global Apple sales records; only the **iPad** rows are used to suggest iPads / tablets, with prices converted from USD to **approximate SGD**.
+- `fmv_engine.py` – **analytics side**: ML model that learns a pricing signal from `data/laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
 - `specs_to_need_bot.py` – **assistant side**: simple NLP + rules to recommend laptops plus accessories (keyboards, phones, iPads) using **SGD (approx.)** prices, based on a natural‑language description of needs.
 - `web_chatbot.py` – optional Flask app that exposes the Specs‑to‑Need Assistant in a browser (tables with per‑device and overall totals). The core prototype still works entirely from the console.
 - `requirements.txt` – Python dependencies.
@@ -84,7 +85,7 @@ Provide a *data‑driven* fair price estimate for an enterprise laptop, based on
 
 **Dataset & features**
 
-The engine now trains on the external CSV `laptop_price.csv` (new‑device prices in euros). From that file, the script engineers the following features and converts prices to SGD using a fixed rate (currently `1 EUR ≈ 1.45 SGD`, configurable in the code):
+The engine now trains on the external CSV `data/laptop_price.csv` (new‑device prices in euros). From that file, the script engineers the following features and converts prices to SGD using a fixed rate (currently `1 EUR ≈ 1.45 SGD`, configurable in the code):
 
 - **`brand`** – from `Company` (laptop manufacturer, e.g. Dell, HP, Lenovo, Apple).  
 - **`model`** – from `Product` (specific model name).  
@@ -132,10 +133,10 @@ Act as a simple “virtual CTO” for non‑technical SME owners:
 
 **Inventories (from CSVs)**
 
-- **Laptops** – from `laptop_price.csv` (same features as the FMV engine, with prices converted from EUR to SGD).  
-- **Keyboards** – from `all_keyboards.csv` (price parsed and converted from EUR‑like units to approximate SGD, with ratings and votes).  
-- **Phones** – from `Mobile phone price.csv` (brand + model, RAM, storage, screen size, cameras, battery; prices converted from USD‑like units to approximate SGD).  
-- **iPads / tablets** – from `apple_global_sales_dataset.csv`, filtered to `category == "iPad"`; `discounted_price_usd` converted to approximate SGD.
+- **Laptops** – from `data/laptop_price.csv` (same features as the FMV engine, with prices converted from EUR to SGD).
+- **Keyboards** – from `data/all_keyboards.csv` (price parsed and converted from EUR‑like units to approximate SGD, with ratings and votes).
+- **Phones** – from `data/Mobile phone price.csv` (brand + model, RAM, storage, screen size, cameras, battery; prices converted from USD‑like units to approximate SGD).
+- **iPads / tablets** – from `data/apple_global_sales_dataset.csv`, filtered to `category == "iPad"`; `discounted_price_usd` converted to approximate SGD.
 
 **How it works**
 
@@ -160,7 +161,7 @@ Act as a simple “virtual CTO” for non‑technical SME owners:
    - **Keyboards** – filtered (when requested) by connection preference (wireless / Bluetooth / USB), then:
      - Sorted by **highest rating + most votes**, or by **highest price** if the user asks for expensive / premium options.  
      - Each keyboard line also shows a **suggested 2nd‑hand price** based on the same 2/3 rule.  
-   - **Phones** – built from `Mobile phone price.csv`, filtered by:
+   - **Phones** – built from `data/Mobile phone price.csv`, filtered by:
      - Budget in SGD (if provided)  
      - Brand hints (e.g. `iphone` / `apple`, `samsung`, `oneplus`)  
      - Simple model matching for iPhones like `"iphone 12 mini"` when specified  

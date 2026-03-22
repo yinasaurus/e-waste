@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 
 import pandas as pd
 from colorama import Fore, Style, init as colorama_init
@@ -8,6 +9,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
+
+# Project data directory (CSV files live in ./data/)
+DATA_DIR = Path(__file__).resolve().parent / "data"
 
 # Simple constant FX rate used for this prototype
 EUR_TO_SGD = 1.45
@@ -116,7 +120,7 @@ def _derive_gpu_type(gpu_str: str) -> str:
 # ---------- 1. Load dataset from CSV ----------
 # The source file is not UTF‑8 encoded, so we specify a
 # more permissive encoding to avoid UnicodeDecodeError.
-raw_df = pd.read_csv("laptop_price.csv", encoding="latin1")
+raw_df = pd.read_csv(DATA_DIR / "laptop_price.csv", encoding="latin1")
 
 # Engineer features to match the FMV model needs
 df = pd.DataFrame()

@@ -1,8 +1,12 @@
 import re
+from pathlib import Path
 
 import pandas as pd
 from colorama import Fore, Style, init as colorama_init
 
+
+# Project data directory (CSV files live in ./data/)
+DATA_DIR = Path(__file__).resolve().parent / "data"
 
 # Simple constant FX rates used for this prototype
 # (kept simple and approximate for demo purposes)
@@ -106,7 +110,7 @@ def _derive_gpu_type(gpu_str: str) -> str:
 # ---------- 1. Laptop inventory from CSV ----------
 # The source file is not UTF‑8 encoded, so we specify a
 # more permissive encoding to avoid UnicodeDecodeError.
-laptop_raw = pd.read_csv("laptop_price.csv", encoding="latin1")
+laptop_raw = pd.read_csv(DATA_DIR / "laptop_price.csv", encoding="latin1")
 
 laptop_inventory = pd.DataFrame()
 laptop_inventory["id"] = laptop_raw["laptop_ID"]
@@ -133,7 +137,7 @@ mouse_inventory = pd.DataFrame()
 
 
 # ---------- 1c. Keyboard inventory from CSV ----------
-keyboard_raw = pd.read_csv("all_keyboards.csv", encoding="latin1")
+keyboard_raw = pd.read_csv(DATA_DIR / "all_keyboards.csv", encoding="latin1")
 
 keyboard_inventory = pd.DataFrame()
 keyboard_inventory["id"] = keyboard_raw[keyboard_raw.columns[0]]
@@ -161,7 +165,7 @@ keyboard_inventory = keyboard_inventory.dropna(subset=["price_eur"])
 # ---------- 1d. Phone inventory from CSV ----------
 # Use "Mobile phone price.csv" (price in USD-like units). We convert to SGD.
 # To avoid header-name quirks (BOMs, trailing spaces), we index by column order.
-phones_raw = pd.read_csv("Mobile phone price.csv", encoding="latin1")
+phones_raw = pd.read_csv(DATA_DIR / "Mobile phone price.csv", encoding="latin1")
 
 phone_inventory = pd.DataFrame()
 phone_inventory["id"] = range(1, len(phones_raw) + 1)
@@ -189,7 +193,7 @@ phone_inventory = phone_inventory.dropna(subset=["price_usd"])
 
 
 # ---------- 1e. iPad inventory from Apple global sales CSV ----------
-ipad_raw = pd.read_csv("apple_global_sales_dataset.csv", encoding="latin1")
+ipad_raw = pd.read_csv(DATA_DIR / "apple_global_sales_dataset.csv", encoding="latin1")
 
 ipad_raw = ipad_raw[ipad_raw["category"] == "iPad"].copy()
 
