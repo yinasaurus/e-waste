@@ -18,7 +18,7 @@ It demonstrates two core components:
   - `data/apple_global_sales_dataset.csv` – global Apple sales records; only the **iPad** rows are used to suggest iPads / tablets, with prices converted from USD to **approximate SGD**.
 - `fmv_engine.py` – **analytics side**: ML model that learns a pricing signal from `data/laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
 - `specs_to_need_bot.py` – **assistant side**: simple NLP + rules to recommend laptops plus accessories (keyboards, phones, iPads) using **SGD (approx.)** prices, based on a natural‑language description of needs.
-- `web_chatbot.py` – optional Flask app that exposes the Specs‑to‑Need Assistant in a browser (tables with per‑device and overall totals). The core prototype still works entirely from the console.
+- `web_chatbot.py` – optional Flask app that exposes the Specs‑to‑Need Assistant in a browser (HTML tables with per‑device new / used prices). The core prototype still works entirely from the console.
 - `requirements.txt` – Python dependencies.
 
 (Figma wireframes for the UI are kept separately in Figma and are referenced in the course presentation.)
@@ -213,15 +213,17 @@ You’ll see:
 
 - A **single text box** where you can type the same prompts as in the console.  
 - A **“Get recommendations”** button.  
-- Results rendered as formatted text (without ANSI colour codes), showing:
+- Results rendered in **`templates/index.html`** as HTML tables (without ANSI colour codes), showing:
   - Quantity and budget  
   - Recommended laptops, keyboards, phones and iPads (with new vs suggested 2nd‑hand prices)  
 
-The web app uses the existing `recommend_devices` and `format_reply` functions, so the logic stays consistent between console and browser.
+**Visual theme:** The page uses the team palette (**#212121**, **#4A4A4A**, **#9D4EDD**, **#FF9100**, **#F7F7F7**) with **Inter** (body) and **Poppins** (headings / primary button), loaded from Google Fonts, so the bot matches the circular‑marketplace branding.
+
+The web app uses the existing `recommend_devices` logic, so recommendations stay consistent between console and browser.
 
 ---
 
-### 5. How This Supports the Circular Marketplace Concept
+### 6. How This Supports the Circular Marketplace Concept
 
 - **FMV Engine** – enables consistent, data‑driven pricing of retired corporate devices, helping corporates and refurbishers recover fair value.  
 - **Specs‑to‑Need Assistant** – lowers the technical literacy barrier for SMEs by translating business tasks into appropriate hardware specs and recommendations.  
