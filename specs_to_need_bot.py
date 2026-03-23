@@ -216,6 +216,127 @@ ipad_inventory["rating"] = pd.to_numeric(
 ipad_inventory = ipad_inventory.dropna(subset=["unit_price_usd"])
 
 
+# ---------- 1f. Desktop components inventory from Newegg CSV ----------
+# `newegg.csv` is a parts catalog (CPU / RAM / Storage / GPU / ...), not
+# full pre-built desktop bundles. We recommend a desktop build as matched
+# parts based on the user's job function + budget.
+
+def _newegg_clean_numeric(s: object) -> float:
+    """Parse numeric strings like '14,723.99' or '(691)' into floats."""
+    if isinstance(s, pd.Series):
+        text = (
+            s.astype(str)
+            .str.strip()
+            .str.replace(",", "", regex=False)
+            .str.replace("(", "", regex=False)
+            .str.replace(")", "", regex=False)
+        )
+        return pd.to_numeric(text, errors="coerce")
+    if s is None or (isinstance(s, float) and pd.isna(s)):
+        return float("nan")
+    text = str(s).strip()
+    # Remove common thousands separators and parentheses wrappers.
+    text = text.replace(",", "").replace("(", "").replace(")", "")
+    return pd.to_numeric(text, errors="coerce")
+
+
+def _parse_gb_from_text(text: str) -> int:
+    """Extract the first '<number>GB' occurrence as integer GB."""
+    if not isinstance(text, str):
+        return 0
+    m = re.search(r"(\d+)\s*GB", text, flags=re.IGNORECASE)
+    return int(m.group(1)) if m else 0
+
+
+def _parse_storage_gb_and_type(text: str) -> tuple[int, str]:
+    """Extract storage size (GB/TB) + storage type (SSD/HDD) from text."""
+    if not isinstance(text, str):
+        return 0, "unknown"
+
+    tb_match = re.search(r"(\d+)\s*TB", text, flags=re.IGNORECASE)
+    gb_match = re.search(r"(\d+)\s*GB", text, flags=re.IGNORECASE)
+
+    storage_gb = 0
+    if tb_match:
+        storage_gb = int(tb_match.group(1)) * 1024
+    elif gb_match:
+        storage_gb = int(gb_match.group(1))
+
+    lowered = text.lower()
+    storage_type = "HDD"
+    if "ssd" in lowered or "nvme" in lowered or "flash" in lowered:
+        storage_type = "SSD"
+    elif "hdd" in lowered:
+        storage_type = "HDD"
+
+    return storage_gb, storage_type
+
+
+def _parse_cpu_score(text: str) -> int:
+    """
+    Rough CPU tier for filtering/sorting:
+    - Intel: Core i3/i5/i7/i9 => 3/5/7/9
+    - AMD: Ryzen 3/5/7/9 => 3/5/7/9
+    """
+    if not isinstance(text, str):
+        return 0
+    m_intel = re.search(r"\b[iI]\s*(3|5|7|9)\s*-\d", text)
+    if m_intel:
+        return int(m_intel.group(1))
+    m_ryzen = re.search(r"\bRyzen\s*(3|5|7|9)\b", text, flags=re.IGNORECASE)
+    if m_ryzen:
+        return int(m_ryzen.group(1))
+    return 0
+
+
+def _parse_gpu_score(text: str) -> int:
+    """Rough GPU tier for sorting: RTX/GTX/RX models (best-effort)."""
+    if not isinstance(text, str):
+        return 0
+    lowered = text.lower()
+    # RTX 3060 -> 3060, RX 6600 -> 6600, GTX 1660 -> 1660
+    m = re.search(r"\b(rtx|gtx|rx)\s*(\d{4}|\d{3})\b", lowered)
+    if m:
+        try:
+            return int(m.group(2))
+        except ValueError:
+            return 0
+    return 0
+
+
+newegg_raw = pd.read_csv(DATA_DIR / "newegg.csv", encoding="latin1")
+newegg_raw.columns = [c.strip() for c in newegg_raw.columns]
+
+# Normalize category values (the dataset has small typos like `storege`, `moniter`).
+newegg_raw["Category"] = newegg_raw["Category"].astype(str).str.strip().str.lower()
+newegg_raw["price_sgd"] = _newegg_clean_numeric(newegg_raw["prices"]) * USD_TO_SGD
+newegg_raw["rating_num"] = _newegg_clean_numeric(newegg_raw["ratings"])
+
+newegg_raw["brand"] = newegg_raw["brand_name"].astype(str)
+newegg_raw["item_desc"] = newegg_raw["items_Decribtion"].astype(str)
+
+newegg_raw = newegg_raw.dropna(subset=["price_sgd"])
+
+desktop_cpu_inventory = newegg_raw[newegg_raw["Category"] == "cpu"].copy()
+desktop_cpu_inventory["cpu_score"] = desktop_cpu_inventory["item_desc"].apply(_parse_cpu_score)
+
+desktop_ram_inventory = newegg_raw[newegg_raw["Category"] == "ram"].copy()
+desktop_ram_inventory["ram_gb"] = desktop_ram_inventory["item_desc"].apply(_parse_gb_from_text)
+
+desktop_storage_inventory = newegg_raw[newegg_raw["Category"] == "storege"].copy()
+desktop_storage_inventory[["storage_gb", "storage_type"]] = desktop_storage_inventory["item_desc"].apply(
+    lambda s: pd.Series(_parse_storage_gb_and_type(s))
+)
+
+desktop_gpu_inventory = newegg_raw[newegg_raw["Category"] == "gpu"].copy()
+desktop_gpu_inventory["gpu_score"] = desktop_gpu_inventory["item_desc"].apply(_parse_gpu_score)
+
+# Optional extras (only shown if the user explicitly asks).
+desktop_monitor_inventory = newegg_raw[newegg_raw["Category"] == "moniter"].copy()
+desktop_power_inventory = newegg_raw[newegg_raw["Category"] == "power"].copy()
+desktop_motherboard_inventory = newegg_raw[newegg_raw["Category"] == "motherboard"].copy()
+
+
 # ---------- 2. NLP parsing ----------
 def parse_requirements(text: str) -> dict:
     """Parse free-text user requirements into structured fields."""
@@ -241,7 +362,7 @@ def parse_requirements(text: str) -> dict:
     # Quantity (not used directly in filtering, but useful for totals)
     # Capture phrases like "3 laptops", "2 tablets", "1 ipad", and "for 2"
     qty_pattern_items = re.findall(
-        r"(\d+)\s*(laptop|pc|computer|computers|laptops|ipad|ipads|tablet|tablets|phone|phones|smartphone|smartphones|mobile|mobiles)",
+        r"(\d+)\s*(laptop|notebook|desktop|desktops|pc|computer|computers|laptops|ipad|ipads|tablet|tablets|phone|phones|smartphone|smartphones|mobile|mobiles|tower|towers)",
         text_lower,
     )
     qty_pattern_for = re.findall(r"for\s+(\d+)\b", text_lower)
@@ -390,12 +511,14 @@ def parse_requirements(text: str) -> dict:
     else:
         job = "general_office"
 
-    # Whether user explicitly wants a mouse and/or keyboard / phone / tablet as well
-    wants_laptop = (
-        "laptop" in text_lower
-        or "pc" in text_lower
-        or "computer" in text_lower
-        or "computers" in text_lower
+    # Core device type: treat "pc/computer" as desktop unless "laptop/notebook" is mentioned.
+    wants_laptop = ("laptop" in text_lower) or ("notebook" in text_lower)
+    pc_like = ("pc" in text_lower) or ("computer" in text_lower) or ("computers" in text_lower)
+    wants_desktop = (
+        ("desktop" in text_lower)
+        or ("tower" in text_lower)
+        or ("workstation" in text_lower)
+        or (pc_like and not wants_laptop)
     )
     wants_mouse = "mouse" in text_lower or "mice" in text_lower
     wants_keyboard = "keyboard" in text_lower or "keycaps" in text_lower
@@ -414,6 +537,7 @@ def parse_requirements(text: str) -> dict:
         "wants_phone": wants_phone,
         "wants_tablet": wants_tablet,
         "wants_laptop": wants_laptop,
+        "wants_desktop": wants_desktop,
         "raw_text": text,
     }
 
@@ -610,20 +734,117 @@ def _recommend_ipads(req: dict, top_k: int = 3) -> pd.DataFrame:
     return candidates.head(top_k)
 
 
+def _recommend_desktop_components(req: dict, top_k: int = 3) -> dict[str, pd.DataFrame]:
+    """
+    Recommend desktop build parts from `newegg.csv`.
+    - CPU, RAM, Storage are always considered for desktop.
+    - GPU is included when `job_to_min_specs(...).needs_gpu` is True.
+
+    Returns a dict of DataFrames: { "cpu": ..., "ram": ..., "storage": ..., "gpu": ... }.
+    """
+    empty_cpu = desktop_cpu_inventory.head(0)
+    empty_ram = desktop_ram_inventory.head(0)
+    empty_storage = desktop_storage_inventory.head(0)
+    empty_gpu = desktop_gpu_inventory.head(0)
+
+    if not req.get("wants_desktop"):
+        return {
+            "cpu": empty_cpu,
+            "ram": empty_ram,
+            "storage": empty_storage,
+            "gpu": empty_gpu,
+        }
+
+    spec = job_to_min_specs(req["job_function"])
+    raw = req.get("raw_text", "").lower()
+    expensive = "expensive" in raw or "premium" in raw or "high end" in raw
+
+    def _sort_candidates(df: pd.DataFrame, include_rating: bool = True) -> pd.DataFrame:
+        if df.empty:
+            return df
+        df = df.copy()
+        if include_rating:
+            df["rating_num_filled"] = df["rating_num"].fillna(0)
+            if expensive:
+                return df.sort_values(["price_sgd"], ascending=False)
+            return df.sort_values(["rating_num_filled", "price_sgd"], ascending=[False, True])
+        if expensive:
+            return df.sort_values(["price_sgd"], ascending=False)
+        return df.sort_values(["price_sgd"], ascending=True)
+
+    def _apply_budget(df: pd.DataFrame, cap: float) -> pd.DataFrame:
+        if df.empty or cap is None:
+            return df
+        filtered = df[df["price_sgd"] <= cap]
+        return filtered if not filtered.empty else df
+
+    total_budget = req.get("budget")
+
+    # CPU
+    cpu_candidates = desktop_cpu_inventory.copy()
+    # Prefer mid/high-tier CPUs for heavier workloads.
+    min_cpu_score = 5 if spec["needs_gpu"] else 0
+    cpu_candidates = cpu_candidates[cpu_candidates["cpu_score"] >= min_cpu_score] if min_cpu_score else cpu_candidates
+    if total_budget:
+        cpu_candidates = _apply_budget(cpu_candidates, cap=total_budget * 0.25)
+    cpu_candidates = _sort_candidates(cpu_candidates, include_rating=True).head(top_k)
+
+    # RAM
+    ram_candidates = desktop_ram_inventory.copy()
+    ram_candidates = ram_candidates[ram_candidates["ram_gb"] >= spec["min_ram"]]
+    if ram_candidates.empty:
+        ram_candidates = desktop_ram_inventory.copy()
+    if total_budget:
+        ram_candidates = _apply_budget(ram_candidates, cap=total_budget * 0.20)
+    ram_candidates = _sort_candidates(ram_candidates, include_rating=True).head(top_k)
+
+    # Storage
+    storage_candidates = desktop_storage_inventory.copy()
+    storage_candidates = storage_candidates[storage_candidates["storage_gb"] >= spec["min_storage"]]
+    if storage_candidates.empty:
+        storage_candidates = desktop_storage_inventory.copy()
+    if total_budget:
+        storage_candidates = _apply_budget(storage_candidates, cap=total_budget * 0.25)
+    storage_candidates = _sort_candidates(storage_candidates, include_rating=True).head(top_k)
+
+    # GPU (optional)
+    if spec["needs_gpu"]:
+        gpu_candidates = desktop_gpu_inventory.copy()
+        gpu_candidates = _sort_candidates(gpu_candidates, include_rating=True).head(top_k)
+        if total_budget:
+            gpu_candidates = _apply_budget(gpu_candidates, cap=total_budget * 0.30)
+            if gpu_candidates.empty:
+                gpu_candidates = desktop_gpu_inventory.copy()
+                gpu_candidates = _apply_budget(gpu_candidates, cap=total_budget * 0.30)
+                gpu_candidates = _sort_candidates(gpu_candidates, include_rating=True).head(top_k)
+    else:
+        gpu_candidates = empty_gpu
+
+    return {
+        "cpu": cpu_candidates,
+        "ram": ram_candidates,
+        "storage": storage_candidates,
+        "gpu": gpu_candidates,
+    }
+
+
 def recommend_devices(user_text: str, top_k: int = 3):
     """Return parsed requirements and top matching laptops (and mice) from inventory."""
     req = parse_requirements(user_text)
     spec = job_to_min_specs(req["job_function"])
 
-    # Only recommend laptops if user asked for them explicitly OR
-    # did not specify any other concrete device type.
-    wants_any_non_laptop = (
+    # Only recommend core devices when the user asks for them explicitly,
+    # otherwise fall back to laptops if they didn't specify any accessories.
+    wants_any_accessory = (
         req.get("wants_mouse")
         or req.get("wants_keyboard")
         or req.get("wants_phone")
         or req.get("wants_tablet")
     )
-    if req.get("wants_laptop") or not wants_any_non_laptop:
+    wants_laptop = req.get("wants_laptop", False)
+    wants_desktop = req.get("wants_desktop", False)
+
+    if wants_laptop or (not wants_desktop and not wants_any_accessory):
         laptop_candidates = laptop_inventory[
             (laptop_inventory["ram_gb"] >= spec["min_ram"])
             & (laptop_inventory["storage_gb"] >= spec["min_storage"])
@@ -664,6 +885,9 @@ def recommend_devices(user_text: str, top_k: int = 3):
             ).head(top_k)
     else:
         laptop_candidates = laptop_inventory.head(0)
+
+    desktop_candidates = _recommend_desktop_components(req, top_k=top_k)
+
     # Mouse recommendations disabled (dataset has no prices and mouse flow removed)
     mouse_candidates = mouse_inventory.head(0)
     keyboard_candidates = _recommend_keyboards(req, top_k=top_k)
@@ -673,6 +897,7 @@ def recommend_devices(user_text: str, top_k: int = 3):
     return (
         req,
         laptop_candidates,
+        desktop_candidates,
         mouse_candidates,
         keyboard_candidates,
         phone_candidates,
@@ -683,6 +908,7 @@ def recommend_devices(user_text: str, top_k: int = 3):
 def format_reply(
     req: dict,
     laptop_candidates: pd.DataFrame,
+    desktop_candidates: dict[str, pd.DataFrame],
     mouse_candidates: pd.DataFrame,
     keyboard_candidates: pd.DataFrame,
     phone_candidates: pd.DataFrame,
@@ -701,16 +927,20 @@ def format_reply(
     }
     job_label = job_map.get(req["job_function"], "General Use")
 
-    wants_any_non_laptop = (
+    wants_any_accessory = (
         req.get("wants_mouse")
         or req.get("wants_keyboard")
         or req.get("wants_phone")
         or req.get("wants_tablet")
     )
-    show_laptop_context = req.get("wants_laptop") or not wants_any_non_laptop
+    desktop_empty = (
+        desktop_candidates is None
+        or all(df.empty for df in desktop_candidates.values())
+    )
+    show_core_context = (not laptop_candidates.empty) or (not desktop_empty)
 
     lines = []
-    if show_laptop_context:
+    if show_core_context:
         lines.append(
             f"{Fore.CYAN}Interpreted need:{Style.RESET_ALL} {job_label}"
         )
@@ -719,20 +949,27 @@ def format_reply(
         lines.append(
             f"{Fore.CYAN}Budget per device:{Style.RESET_ALL} about S${req['budget']}"
         )
-    # Only show laptop minimum specs when laptops are part of the recommendation
-    if show_laptop_context:
-        base_spec = job_to_min_specs(req["job_function"])
+    base_spec = job_to_min_specs(req["job_function"])
+    if not laptop_candidates.empty:
         lines.append(
             f"{Fore.CYAN}Recommended minimum laptop specs:{Style.RESET_ALL} "
             f"{base_spec['min_ram']}GB RAM, "
             f"{base_spec['min_storage']}GB SSD, "
             f"{'dedicated GPU' if base_spec['needs_gpu'] else 'integrated GPU OK'}"
         )
+    if not desktop_empty:
+        lines.append(
+            f"{Fore.CYAN}Recommended minimum desktop parts:{Style.RESET_ALL} "
+            f"{base_spec['min_ram']}GB RAM, "
+            f"{base_spec['min_storage']}GB SSD storage, "
+            f"{'dedicated GPU required' if base_spec['needs_gpu'] else 'integrated OK'}"
+        )
     lines.append("")
 
     if (
         laptop_candidates.empty
         and mouse_candidates.empty
+        and desktop_empty
         and keyboard_candidates.empty
         and phone_candidates.empty
         and ipad_candidates.empty
@@ -764,6 +1001,86 @@ def format_reply(
                 f"S${used_price:>6.0f} "
                 f"S${total_price:>11.0f}"
             )
+
+    # Desktop build parts
+    if not desktop_empty:
+        desktop_any = False
+        for key in ["cpu", "ram", "storage", "gpu"]:
+            if key in desktop_candidates and not desktop_candidates[key].empty:
+                desktop_any = True
+                break
+
+        if desktop_any:
+            lines.append("")
+            lines.append(f"{Fore.GREEN}Desktop build parts (SGD, approx):{Style.RESET_ALL}")
+
+        # CPU
+        cpu_df = desktop_candidates.get("cpu")
+        if cpu_df is not None and not cpu_df.empty:
+            header = f"{'#':<3} {'CPU/Brand':<40} {'New':>8} {'Used':>8}"
+            lines.append("")
+            lines.append(f"{Fore.CYAN}CPU candidates:{Style.RESET_ALL}")
+            lines.append(header)
+            lines.append("-" * len(header))
+            for idx, (_, row) in enumerate(cpu_df.iterrows(), start=1):
+                used_price = estimate_used_price(row["price_sgd"])
+                item = f"{row['brand']} {row['item_desc']}"
+                lines.append(
+                    f"{idx:<3} {item[:40]:<40} "
+                    f"S${row['price_sgd']:>6.0f} "
+                    f"S${used_price:>6.0f}"
+                )
+
+        # RAM
+        ram_df = desktop_candidates.get("ram")
+        if ram_df is not None and not ram_df.empty:
+            header = f"{'#':<3} {'RAM':<14} {'New':>8} {'Used':>8}"
+            lines.append("")
+            lines.append(f"{Fore.CYAN}RAM candidates (meets min RAM if possible):{Style.RESET_ALL}")
+            lines.append(header)
+            lines.append("-" * len(header))
+            for idx, (_, row) in enumerate(ram_df.iterrows(), start=1):
+                used_price = estimate_used_price(row["price_sgd"])
+                ram_label = f"{int(row['ram_gb'])}GB"
+                lines.append(
+                    f"{idx:<3} {ram_label:<14} "
+                    f"S${row['price_sgd']:>6.0f} "
+                    f"S${used_price:>6.0f}"
+                )
+
+        # Storage
+        storage_df = desktop_candidates.get("storage")
+        if storage_df is not None and not storage_df.empty:
+            header = f"{'#':<3} {'Storage':<16} {'New':>8} {'Used':>8}"
+            lines.append("")
+            lines.append(f"{Fore.CYAN}Storage candidates (meets min storage if possible):{Style.RESET_ALL}")
+            lines.append(header)
+            lines.append("-" * len(header))
+            for idx, (_, row) in enumerate(storage_df.iterrows(), start=1):
+                used_price = estimate_used_price(row["price_sgd"])
+                storage_label = f"{int(row['storage_gb'])}GB {row['storage_type']}"
+                lines.append(
+                    f"{idx:<3} {storage_label:<16} "
+                    f"S${row['price_sgd']:>6.0f} "
+                    f"S${used_price:>6.0f}"
+                )
+
+        # GPU (optional)
+        gpu_df = desktop_candidates.get("gpu")
+        if gpu_df is not None and not gpu_df.empty:
+            header = f"{'#':<3} {'GPU/Brand':<40} {'New':>8} {'Used':>8}"
+            lines.append("")
+            lines.append(f"{Fore.CYAN}GPU candidates (only when recommended):{Style.RESET_ALL}")
+            lines.append(header)
+            lines.append("-" * len(header))
+            for idx, (_, row) in enumerate(gpu_df.iterrows(), start=1):
+                used_price = estimate_used_price(row["price_sgd"])
+                item = f"{row['brand']} {row['item_desc']}"
+                lines.append(
+                    f"{idx:<3} {item[:40]:<40} "
+                    f"S${row['price_sgd']:>6.0f} "
+                    f"S${used_price:>6.0f}"
+                )
 
     # Mouse suggestions disabled
 
@@ -894,6 +1211,7 @@ if __name__ == "__main__":
             (
                 req,
                 laptop_recs,
+                desktop_recs,
                 mouse_recs,
                 keyboard_recs,
                 phone_recs,
@@ -904,6 +1222,7 @@ if __name__ == "__main__":
                 format_reply(
                     req,
                     laptop_recs,
+                    desktop_recs,
                     mouse_recs,
                     keyboard_recs,
                     phone_recs,

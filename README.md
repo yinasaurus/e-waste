@@ -5,7 +5,7 @@ This repository contains a **Python prototype** for a B2B circular marketplace t
 It demonstrates two core components:
 
 1. **FMV (Fair Market Value) Pricing Engine** – an analytics module that learns a pricing signal from laptop specs and estimates a fair resale price (FMV) in SGD, then applies a second‑hand discount heuristic.  
-2. **Specs‑to‑Need Assistant** – an assistant that turns natural‑language needs into second‑hand‑style recommendations for laptops, keyboards, phones and iPads, using both new‑ish and suggested used prices.
+2. **Specs‑to‑Need Assistant** – an assistant that turns natural‑language needs into second‑hand‑style recommendations for laptops, desktop parts, keyboards, phones and iPads, using both new‑ish and suggested used prices.
 
 ---
 
@@ -16,8 +16,9 @@ It demonstrates two core components:
   - `data/all_keyboards.csv` – keyboard products with prices and ratings, converted to **approximate SGD** in the bot.
   - `data/Mobile phone price.csv` – smartphone brand + model + specs (RAM, storage, screen size, cameras, battery, price in USD‑like units), converted to **approximate SGD** in the bot.
   - `data/apple_global_sales_dataset.csv` – global Apple sales records; only the **iPad** rows are used to suggest iPads / tablets, with prices converted from USD to **approximate SGD**.
+- `data/newegg.csv` – desktop component parts catalog (CPU / RAM / storage / GPU, plus some extras), used to suggest “desktop build” parts with approximate SGD prices.
 - `fmv_engine.py` – **analytics side**: ML model that learns a pricing signal from `data/laptop_price.csv` and predicts a fair market value for a laptop in **SGD (approx.)**, based on its specs.
-- `specs_to_need_bot.py` – **assistant side**: simple NLP + rules to recommend laptops plus accessories (keyboards, phones, iPads) using **SGD (approx.)** prices, based on a natural‑language description of needs.
+- `specs_to_need_bot.py` – **assistant side**: simple NLP + rules to recommend laptops (or desktop parts) plus accessories (keyboards, phones, iPads) using **SGD (approx.)** prices, based on a natural‑language description of needs.
 - `web_chatbot.py` – optional Flask app that exposes the Specs‑to‑Need Assistant in a browser (HTML tables with per‑device new / used prices). The core prototype still works entirely from the console.
 - `requirements.txt` – Python dependencies.
 
@@ -129,7 +130,7 @@ Act as a simple “virtual CTO” for non‑technical SME owners:
 
 - User describes needs in plain English (e.g. “gaming laptop under 2500 with keyboard, phone and iPad”).  
 - The assistant infers the job type, budget, quantity, and which **device types** are requested.  
-- It recommends suitable **laptops plus optional accessories** (keyboards, phones, iPads/tablets) from the CSV inventories.
+- It recommends suitable **laptops or desktop parts** plus optional accessories (keyboards, phones, iPads/tablets) from the CSV inventories.
 
 **Inventories (from CSVs)**
 
@@ -215,7 +216,7 @@ You’ll see:
 - A **“Get recommendations”** button.  
 - Results rendered in **`templates/index.html`** as HTML tables (without ANSI colour codes), showing:
   - Quantity and budget  
-  - Recommended laptops, keyboards, phones and iPads (with new vs suggested 2nd‑hand prices)  
+  - Recommended laptops, desktop parts, keyboards, phones and iPads (with new vs suggested 2nd‑hand prices)
 
 **Visual theme:** The page uses the team palette (**#212121**, **#4A4A4A**, **#9D4EDD**, **#FF9100**, **#F7F7F7**) with **Inter** (body) and **Poppins** (headings / primary button), loaded from Google Fonts, so the bot matches the circular‑marketplace branding.
 

@@ -242,14 +242,16 @@
       <h1>Specs‑to‑Need Assistant</h1>
       <div class="subtitle">
         Describe what you need in plain English. The assistant will infer job type, budget and quantity,
-        then suggest second‑hand‑style hardware with both &quot;new‑ish&quot; and used prices.
+        then suggest second‑hand‑style hardware (laptops or desktop parts, plus accessories) with both
+        &quot;new‑ish&quot; and used prices.
       </div>
 
       <form method="post">
-        <textarea name="query" placeholder="Example: I need 2 gaming laptops under 2500 each, plus a keyboard and phone.">{{ query }}</textarea>
+        <textarea name="query" placeholder="Example: I need 1 gaming desktop under 2500, plus a monitor/keyboard/phone.">{{ query }}</textarea>
         <div class="examples">
           Examples:
           <code>I need 3 laptops for video editing under 1500, prefer Windows.</code>
+          <code>gaming desktop/tower under 2500 (need GPU) + keyboard</code>
           <code>education ipad around 1200 with keyboard</code>
           <code>iphone 12 mini, expensive, good battery</code>
         </div>
@@ -267,6 +269,14 @@
         <div><strong>Budget per device:</strong> S${{ summary.budget }}</div>
         {% endif %}
       </div>
+      {% endif %}
+
+      {% if query and not summary.error %}
+      <p class="muted">
+        <strong>Price guide:</strong> “New” is the dataset list price (approx). “Used” is a suggested
+        2nd-hand asking price using a 2/3 rule plus simple adjustments. All prices are in SGD (approx).
+        For desktop builds, your budget is used to pick matching parts (CPU/RAM/Storage + optional GPU).
+      </p>
       {% endif %}
 
       {% if laptops %}
@@ -293,6 +303,110 @@
           {% endfor %}
         </tbody>
       </table>
+      {% endif %}
+
+      {% if desktop_cpu or desktop_ram or desktop_storage or desktop_gpu %}
+      <div class="section-title">Desktop Build Parts (SGD, approx)</div>
+
+      {% if desktop_cpu %}
+      <div class="section-title" style="margin-top: 16px;">CPU (per part)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Brand</th>
+            <th>Item</th>
+            <th>New</th>
+            <th>Used</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in desktop_cpu %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.brand }}</td>
+            <td>{{ row.item | truncate(60, True, '...') }}</td>
+            <td>S${{ row.new | int }}</td>
+            <td>S${{ row.used | int }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if desktop_ram %}
+      <div class="section-title" style="margin-top: 16px;">RAM (per part)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>RAM</th>
+            <th>New</th>
+            <th>Used</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in desktop_ram %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.ram_gb }}GB</td>
+            <td>S${{ row.new | int }}</td>
+            <td>S${{ row.used | int }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if desktop_storage %}
+      <div class="section-title" style="margin-top: 16px;">Storage (per part)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Storage</th>
+            <th>New</th>
+            <th>Used</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in desktop_storage %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.storage_gb }}GB {{ row.storage_type }}</td>
+            <td>S${{ row.new | int }}</td>
+            <td>S${{ row.used | int }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if desktop_gpu %}
+      <div class="section-title" style="margin-top: 16px;">GPU (optional, when needed)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Brand</th>
+            <th>Item</th>
+            <th>New</th>
+            <th>Used</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in desktop_gpu %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.brand }}</td>
+            <td>{{ row.item | truncate(60, True, '...') }}</td>
+            <td>S${{ row.new | int }}</td>
+            <td>S${{ row.used | int }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
       {% endif %}
 
       {% if keyboards %}
@@ -377,7 +491,7 @@
       </table>
       {% endif %}
 
-      {% if not summary.error and not (laptops or keyboards or phones or ipads) and query %}
+      {% if not summary.error and not (laptops or desktop_cpu or desktop_ram or desktop_storage or desktop_gpu or keyboards or phones or ipads) and query %}
       <p class="muted">No matching devices found for this query.</p>
       {% endif %}
     </div>

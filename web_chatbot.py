@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flask import Flask, render_template, request
+import pandas as pd
 
 from specs_to_need_bot import recommend_devices, estimate_used_price
 
@@ -23,6 +24,10 @@ def index():
     keyboards: list[dict] = []
     phones: list[dict] = []
     ipads: list[dict] = []
+    desktop_cpu: list[dict] = []
+    desktop_ram: list[dict] = []
+    desktop_storage: list[dict] = []
+    desktop_gpu: list[dict] = []
 
     if request.method == "POST":
         query = request.form.get("query", "").strip()
@@ -32,8 +37,10 @@ def index():
             lowered = query.lower()
             device_keywords = [
                 "laptop",
+                "desktop",
                 "pc",
                 "computer",
+                "tower",
                 "ipad",
                 "tablet",
                 "phone",
@@ -45,14 +52,20 @@ def index():
                 ch.isdigit() for ch in lowered
             ):
                 summary["error"] = (
-                    "Please mention at least one device type (laptop, phone, "
-                    "iPad, keyboard) or a budget/quantity so the assistant "
+                    "Please mention at least one device type (laptop, desktop, "
+                    "phone, iPad, keyboard) or a budget/quantity so the assistant "
                     "has something to optimise for."
                 )
             else:
-                req, laptops_df, _, keyboards_df, phones_df, ipads_df = recommend_devices(
-                    query
-                )
+                (
+                    req,
+                    laptops_df,
+                    desktop_recs,
+                    _mouse_df,
+                    keyboards_df,
+                    phones_df,
+                    ipads_df,
+                ) = recommend_devices(query)
 
                 job_map = {
                     "video_editing": "Video Editing",
@@ -126,6 +139,54 @@ def index():
                         }
                     )
 
+                # Desktop parts (CPU / RAM / Storage / optional GPU)
+                for _, row in desktop_recs.get("cpu", pd.DataFrame()).iterrows():
+                    new_price = float(row["price_sgd"])
+                    used_price = estimate_used_price(new_price)
+                    desktop_cpu.append(
+                        {
+                            "brand": str(row["brand"]),
+                            "item": str(row["item_desc"]),
+                            "new": round(new_price, 0),
+                            "used": used_price,
+                        }
+                    )
+
+                for _, row in desktop_recs.get("ram", pd.DataFrame()).iterrows():
+                    new_price = float(row["price_sgd"])
+                    used_price = estimate_used_price(new_price)
+                    desktop_ram.append(
+                        {
+                            "ram_gb": int(row["ram_gb"]) if not pd.isna(row["ram_gb"]) else 0,
+                            "new": round(new_price, 0),
+                            "used": used_price,
+                        }
+                    )
+
+                for _, row in desktop_recs.get("storage", pd.DataFrame()).iterrows():
+                    new_price = float(row["price_sgd"])
+                    used_price = estimate_used_price(new_price)
+                    desktop_storage.append(
+                        {
+                            "storage_gb": int(row["storage_gb"]) if not pd.isna(row["storage_gb"]) else 0,
+                            "storage_type": str(row.get("storage_type", "unknown")),
+                            "new": round(new_price, 0),
+                            "used": used_price,
+                        }
+                    )
+
+                for _, row in desktop_recs.get("gpu", pd.DataFrame()).iterrows():
+                    new_price = float(row["price_sgd"])
+                    used_price = estimate_used_price(new_price)
+                    desktop_gpu.append(
+                        {
+                            "brand": str(row["brand"]),
+                            "item": str(row["item_desc"]),
+                            "new": round(new_price, 0),
+                            "used": used_price,
+                        }
+                    )
+
     return render_template(
         "index.html",
         query=query,
@@ -134,6 +195,10 @@ def index():
         keyboards=keyboards,
         phones=phones,
         ipads=ipads,
+        desktop_cpu=desktop_cpu,
+        desktop_ram=desktop_ram,
+        desktop_storage=desktop_storage,
+        desktop_gpu=desktop_gpu,
     )
 
 
