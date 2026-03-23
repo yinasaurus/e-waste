@@ -340,6 +340,10 @@ desktop_motherboard_inventory = newegg_raw[newegg_raw["Category"] == "motherboar
 # ---------- 2. NLP parsing ----------
 def parse_requirements(text: str) -> dict:
     """Parse free-text user requirements into structured fields."""
+    if text is None:
+        text = ""
+    elif not isinstance(text, str):
+        text = str(text)
     text_lower = text.lower()
 
     # Simple typo normalisation for a few key words
