@@ -1001,29 +1001,6 @@
         border-bottom: 1px solid var(--purple);
         cursor: pointer;
       }
-      .category-tabs {
-        display: flex;
-        gap: 32px;
-        padding: 20px 8%;
-        overflow-x: auto;
-      }
-      .cat-tab {
-        font-family: "Poppins", sans-serif;
-        font-size: 16px;
-        color: var(--light);
-        cursor: pointer;
-        opacity: 0.7;
-        white-space: nowrap;
-        padding-bottom: 6px;
-        border-bottom: 2px solid transparent;
-        transition: opacity 0.2s, border-color 0.2s;
-      }
-      .cat-tab.active,
-      .cat-tab:hover {
-        opacity: 1;
-        color: var(--orange);
-        border-bottom-color: var(--orange);
-      }
       .marketplace-layout {
         display: grid;
         grid-template-columns: 220px 1fr;
@@ -1114,6 +1091,11 @@
         justify-content: center;
         font-size: 54px;
       }
+      .mp-card-img img {
+        width: 80%;
+        height: 80%;
+        object-fit: contain;
+      }
       .mp-card-info {
         padding: 12px 14px 14px;
       }
@@ -1178,15 +1160,20 @@
       .thumb {
         width: 100%;
         aspect-ratio: 1;
+        flex-shrink: 0;
         background: #f5f5f5;
         border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 32px;
         cursor: pointer;
         border: 2px solid transparent;
         transition: border-color 0.2s;
+      }
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
       .thumb.active,
       .thumb:hover {
@@ -1201,6 +1188,11 @@
         justify-content: center;
         font-size: 100px;
         min-height: 360px;
+      }
+      .product-main-img img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
       }
       .product-meta h2 {
         font-weight: 600;
@@ -1362,6 +1354,11 @@
         justify-content: center;
         font-size: 48px;
       }
+      .related-card-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
       .related-card-info {
         padding: 10px 12px 14px;
       }
@@ -1422,6 +1419,11 @@
         align-items: center;
         justify-content: center;
         font-size: 26px;
+      }
+      .cart-item-img img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
       }
       .cart-qty {
         display: flex;
@@ -1543,6 +1545,11 @@
         align-items: center;
         justify-content: center;
         font-size: 28px;
+      }
+      .order-product-img img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
       }
       .order-product-info {
         flex: 1;
@@ -1814,7 +1821,7 @@
         <!-- Logged in state -->
         <div id="nav-logged-in" style="display: none" class="nav-user">
           <span class="cart-icon" onclick="showPage('cart')"
-            >🛒<span class="cart-badge">2</span></span
+            >🛒<span class="cart-badge">1</span></span
           >
           <div class="nav-dropdown">
             <div class="nav-user-name">Welcome, Theodore</div>
@@ -1956,7 +1963,7 @@
           </div>
           <div class="product-card" onclick="showPage('product-detail')">
             <div class="product-img">
-              <img src="img/samsung-phone.png" alt="keyboard" />
+              <img src="img/samsung-phone.png" alt="samsung-phone" />
             </div>
             <div class="product-info">
               <h4>Samsung Galaxy S21 Ultra 256GB</h4>
@@ -2446,9 +2453,9 @@
       </div>
       <div class="about-banner">
         <div class="about-banner-inner">
-            <div class="about-img">
-                <img src="img/about-us-2.png" alt="about-us-2" />
-            </div>
+          <div class="about-img">
+            <img src="img/about-us-2.png" alt="about-us-2" />
+          </div>
           <div class="about-text">
             <h2>The Problem We're Solving</h2>
             <p>
@@ -2556,159 +2563,154 @@
       <div class="marketplace-hero">
         <img src="img/marketplace-hero.png" alt="marketplace-hero" />
       </div>
-      
+
       <!-- Categories -->
-      <div style="padding: 28px 8% 8px">
+      <div style="padding: 28px 8%">
         <h2 class="section-title" style="text-align: left">Categories</h2>
-      </div>
-      <div class="category-tabs">
-        <span class="cat-tab active">Laptops</span>
-        <span class="cat-tab">Smartphones</span>
-        <span class="cat-tab">Tablets</span>
-        <span class="cat-tab">Keyboards</span>
-        <span class="cat-tab">Mouses</span>
-      </div>
-      <!-- Category circles -->
-      <div style="display: flex; gap: 20px; padding: 20px 8%; overflow-x: auto">
+        <!-- Category circles -->
         <div
-          style="
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-          "
-          onclick="showPage('marketplace-cat')"
+          style="display: flex; gap: 100px; padding: 20px 8%; overflow-x: auto"
         >
           <div
             style="
-              width: 110px;
-              height: 110px;
-              background: var(--orange);
-              border-radius: 50%;
               display: flex;
+              flex-direction: column;
               align-items: center;
-              justify-content: center;
-              font-size: 44px;
+              gap: 8px;
+              cursor: pointer;
             "
+            onclick="showPage('marketplace-cat')"
           >
-            💻
+            <div
+              style="
+                width: 110px;
+                height: 110px;
+                background: var(--orange);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 44px;
+              "
+            >
+              💻
+            </div>
+            <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
+              >Laptops</span
+            >
           </div>
-          <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
-            >Laptops</span
-          >
-        </div>
-        <div
-          style="
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-          "
-          onclick="showPage('marketplace-cat')"
-        >
           <div
             style="
-              width: 110px;
-              height: 110px;
-              background: var(--orange);
-              border-radius: 50%;
               display: flex;
+              flex-direction: column;
               align-items: center;
-              justify-content: center;
-              font-size: 44px;
+              gap: 8px;
+              cursor: pointer;
             "
+            onclick="showPage('marketplace-cat')"
           >
-            📱
+            <div
+              style="
+                width: 110px;
+                height: 110px;
+                background: var(--orange);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 44px;
+              "
+            >
+              📱
+            </div>
+            <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
+              >Smartphones</span
+            >
           </div>
-          <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
-            >Smartphones</span
-          >
-        </div>
-        <div
-          style="
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-          "
-          onclick="showPage('marketplace-cat')"
-        >
           <div
             style="
-              width: 110px;
-              height: 110px;
-              background: var(--orange);
-              border-radius: 50%;
               display: flex;
+              flex-direction: column;
               align-items: center;
-              justify-content: center;
-              font-size: 44px;
+              gap: 8px;
+              cursor: pointer;
             "
+            onclick="showPage('marketplace-cat')"
           >
-            ⌨️
+            <div
+              style="
+                width: 110px;
+                height: 110px;
+                background: var(--orange);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 44px;
+              "
+            >
+              ⌨️
+            </div>
+            <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
+              >Keyboards</span
+            >
           </div>
-          <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
-            >Keyboards</span
-          >
-        </div>
-        <div
-          style="
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-          "
-          onclick="showPage('marketplace-cat')"
-        >
           <div
             style="
-              width: 110px;
-              height: 110px;
-              background: var(--orange);
-              border-radius: 50%;
               display: flex;
+              flex-direction: column;
               align-items: center;
-              justify-content: center;
-              font-size: 44px;
+              gap: 8px;
+              cursor: pointer;
             "
+            onclick="showPage('marketplace-cat')"
           >
-            🖱️
+            <div
+              style="
+                width: 110px;
+                height: 110px;
+                background: var(--orange);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 44px;
+              "
+            >
+              🖱️
+            </div>
+            <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
+              >Mouses</span
+            >
           </div>
-          <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
-            >Mouses</span
-          >
-        </div>
-        <div
-          style="
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-          "
-          onclick="showPage('marketplace-cat')"
-        >
           <div
             style="
-              width: 110px;
-              height: 110px;
-              background: var(--orange);
-              border-radius: 50%;
               display: flex;
+              flex-direction: column;
               align-items: center;
-              justify-content: center;
-              font-size: 44px;
+              gap: 8px;
+              cursor: pointer;
             "
+            onclick="showPage('marketplace-cat')"
           >
-            🖥️
+            <div
+              style="
+                width: 110px;
+                height: 110px;
+                background: var(--orange);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 44px;
+              "
+            >
+              🖥️
+            </div>
+            <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
+              >Desktops</span
+            >
           </div>
-          <span style="font-family: 'Poppins', sans-serif; font-size: 13px"
-            >Desktops</span
-          >
         </div>
       </div>
       <!-- New Arrivals -->
@@ -2724,28 +2726,28 @@
         "
       >
         <div class="mp-card" onclick="showPage('product-detail')">
-          <div class="mp-card-img">📱</div>
+          <div class="mp-card-img"><img src="img/iphone15promax.png" alt="iphone15promax" /></div>
           <div class="mp-card-info">
             <h4>Apple iPhone 15 Pro Max, 256 GB, Unlocked</h4>
             <p class="mp-card-price">SGD 611.99</p>
           </div>
         </div>
         <div class="mp-card" onclick="showPage('product-detail')">
-          <div class="mp-card-img">📱</div>
+          <div class="mp-card-img"><img src="img/iphone16promax.png" alt="iphone16promax" /></div>
           <div class="mp-card-info">
             <h4>Apple iPhone 16 PRO MAX 256GB, Refurbished</h4>
             <p class="mp-card-price">SGD 999.99</p>
           </div>
         </div>
         <div class="mp-card" onclick="showPage('product-detail')">
-          <div class="mp-card-img">💻</div>
+          <div class="mp-card-img"><img src="img/macbookpro16.png" alt="macbookpro16" /></div>
           <div class="mp-card-info">
             <h4>Apple 2021 MacBook Pro M1 Max, 16", 32GB, 1TB</h4>
             <p class="mp-card-price">SGD 1,399.99</p>
           </div>
         </div>
         <div class="mp-card" onclick="showPage('product-detail')">
-          <div class="mp-card-img">💻</div>
+          <div class="mp-card-img"><img src="img/macbookpro13.png" alt="macbookpro13" /></div>
           <div class="mp-card-info">
             <h4>2022 Apple MacBook Pro 13.3" M2 8-Core 256GB SSD</h4>
             <p class="mp-card-price">SGD 575.00</p>
@@ -2765,28 +2767,32 @@
         "
       >
         <div class="mp-card" onclick="showPage('product-detail')">
-          <div class="mp-card-img">💻</div>
+          <div class="mp-card-img">
+            <img src="img/mb-air-13.png" alt="mb-air-13" />
+          </div>
           <div class="mp-card-info">
             <h4>Apple MacBook Air 13.3" Intel Core i5 1.8GHz 8GB</h4>
             <p class="mp-card-price">SGD 898.94</p>
           </div>
         </div>
         <div class="mp-card" onclick="showPage('product-detail')">
-          <div class="mp-card-img">💻</div>
+          <div class="mp-card-img"><img src="img/acer.png" alt="acer" /></div>
           <div class="mp-card-info">
             <h4>Acer Aspire 3 15.6" AMD A9 3GHz 4GB</h4>
             <p class="mp-card-price">SGD 400.00</p>
           </div>
         </div>
         <div class="mp-card" onclick="showPage('product-detail')">
-          <div class="mp-card-img">💻</div>
+          <div class="mp-card-img">
+            <div class="mp-card-img"><img src="img/hp.png" alt="hp" /></div>
+          </div>
           <div class="mp-card-info">
             <h4>HP 250 G6 15.6" Intel Core i5 7200U 2.5GHz 8GB</h4>
             <p class="mp-card-price">SGD 575.00</p>
           </div>
         </div>
         <div class="mp-card" onclick="showPage('product-detail')">
-          <div class="mp-card-img">🖥️</div>
+          <div class="mp-card-img"><img src="img/acer-desktop.png" alt="acer-desktop" /></div>
           <div class="mp-card-info">
             <h4>Acer Aspire Desktop Intel Core i5-14400 UHD 730</h4>
             <p class="mp-card-price">SGD 549.99</p>
@@ -2859,7 +2865,7 @@
       <div class="marketplace-hero">
         <img src="img/marketplace-hero.png" alt="marketplace-hero" />
       </div>
-      >
+      
       <!-- Filters + Grid -->
       <div style="padding: 16px 8% 8px">
         <h2 class="section-title" style="text-align: left">Laptops Products</h2>
@@ -2874,13 +2880,13 @@
             <div class="filter-section">
               <h5>Category</h5>
               <div class="filter-item">
-                <span>Custom PCs</span><span class="filter-count">15</span>
+                <span>Apple</span><span class="filter-count">45</span>
               </div>
               <div class="filter-item">
-                <span>HP/Compaq PCs</span><span class="filter-count">45</span>
+                <span>HP</span><span class="filter-count">30</span>
               </div>
               <div class="filter-item">
-                <span>MSI All-in-One</span><span class="filter-count">1</span>
+                <span>Acer</span><span class="filter-count">1</span>
               </div>
             </div>
             <div class="filter-section">
@@ -2987,66 +2993,72 @@
           </div>
           <div class="marketplace-grid">
             <div class="mp-card" onclick="showPage('product-detail')">
-              <div class="mp-card-img">💻</div>
+              <div class="mp-card-img">
+                <img src="img/mb-air-13.png" alt="mb-air-13" />
+              </div>
               <div class="mp-card-info">
                 <h4>Apple MacBook Air 13.3" Intel Core i5 1.8GHz 8GB</h4>
                 <p class="mp-card-price">SGD 898.94</p>
               </div>
             </div>
             <div class="mp-card" onclick="showPage('product-detail')">
-              <div class="mp-card-img">💻</div>
+              <div class="mp-card-img">
+                <img src="img/acer.png" alt="acer" />
+              </div>
               <div class="mp-card-info">
                 <h4>Acer Aspire 3 15.6" AMD A9-Series 9420 3GHz 4GB</h4>
                 <p class="mp-card-price">SGD 400.00</p>
               </div>
             </div>
             <div class="mp-card" onclick="showPage('product-detail')">
-              <div class="mp-card-img">💻</div>
+              <div class="mp-card-img">
+                <div class="mp-card-img"><img src="img/hp.png" alt="hp" /></div>
+              </div>
               <div class="mp-card-info">
                 <h4>HP 250 G6 15.6" Intel Core i5 7200U 2.5GHz 8GB</h4>
                 <p class="mp-card-price">SGD 575.00</p>
               </div>
             </div>
             <div class="mp-card" onclick="showPage('product-detail')">
-              <div class="mp-card-img">📱</div>
+              <div class="mp-card-img"><img src="img/hp-15.png" alt="hp-15" /></div>
               <div class="mp-card-info">
-                <h4>Apple iPhone 16 PRO MAX 256GB Refurbished</h4>
-                <p class="mp-card-price">SGD 999.99</p>
+                <h4> HP Pavilion 15.6" FHD Laptop (2022) AMD Ryzen 5 5500U 16GB 512GB</h4>
+                <p class="mp-card-price">SGD 300.00</p>
               </div>
             </div>
             <div class="mp-card" onclick="showPage('product-detail')">
-              <div class="mp-card-img">💻</div>
+              <div class="mp-card-img"><img src="img/macbookpro16.png" alt="macbookpro16" /></div>
               <div class="mp-card-info">
                 <h4>Apple 2021 MacBook Pro M1 Max 16" 32GB 1TB</h4>
                 <p class="mp-card-price">SGD 1,399.99</p>
               </div>
             </div>
             <div class="mp-card" onclick="showPage('product-detail')">
-              <div class="mp-card-img">💻</div>
+              <div class="mp-card-img"><img src="img/macbookpro13.png" alt="macbookpro13" /></div>
               <div class="mp-card-info">
                 <h4>2022 Apple MacBook Pro 13.3" M2 256GB Space Gray</h4>
                 <p class="mp-card-price">SGD 575.00</p>
               </div>
             </div>
             <div class="mp-card" onclick="showPage('product-detail')">
-              <div class="mp-card-img">🖥️</div>
+              <div class="mp-card-img"><img src="img/dell-1-plus.png" alt="dell-1-plus" /></div>
               <div class="mp-card-info">
-                <h4>Acer Aspire Desktop Intel Core i5-14400 UHD 730</h4>
-                <p class="mp-card-price">SGD 549.99</p>
+                <h4>Dell 1 Plus AMD Ryzen™ AI 7 350 16GB 1TB</h4>
+                <p class="mp-card-price">SGD 723.76</p>
               </div>
             </div>
             <div class="mp-card" onclick="showPage('product-detail')">
-              <div class="mp-card-img">🖥️</div>
+              <div class="mp-card-img"><img src="img/msi.png" alt="msi" /></div>
               <div class="mp-card-info">
-                <h4>MSI Gaming Desktop Aegis RS2 Core Ultra 7 RTX 5070</h4>
-                <p class="mp-card-price">SGD 1,899.00</p>
+                <h4>MSI GL63 15.6 Gaming Laptop Intel Core i7 GTX 1050 8GB 1TB</h4>
+                <p class="mp-card-price">SGD 929.00</p>
               </div>
             </div>
             <div class="mp-card" onclick="showPage('product-detail')">
-              <div class="mp-card-img">🖥️</div>
+              <div class="mp-card-img"><img src="img/asus.png" alt="asus" /></div>
               <div class="mp-card-info">
-                <h4>Skytech Azure 3 Gaming PC AMD Ryzen 7 RTX 5060 Ti</h4>
-                <p class="mp-card-price">SGD 1,699.99</p>
+                <h4>ASUS Zenbook S 14</h4>
+                <p class="mp-card-price">SGD 699.99</p>
               </div>
             </div>
           </div>
@@ -3123,12 +3135,26 @@
       <div class="product-detail-layout">
         <!-- Thumbnails -->
         <div class="product-thumbs">
-          <div class="thumb active">💻</div>
-          <div class="thumb">🔋</div>
-          <div class="thumb">⌨️</div>
+          <div class="thumb active">
+            <div class="mp-card-img">
+              <img src="img/product-detail-2.png" alt="product-detail-2" />
+            </div>
+          </div>
+          <div class="thumb">
+            <div class="mp-card-img">
+              <img src="img/product-detail-3.png" alt="product-detail-3" />
+            </div>
+          </div>
+          <div class="thumb">
+            <div class="mp-card-img">
+              <img src="img/product-detail-4.png" alt="product-detail-4" />
+            </div>
+          </div>
         </div>
         <!-- Main Image -->
-        <div class="product-main-img">💻</div>
+        <div class="product-main-img">
+          <img src="img/mb-air-13.png" alt="mb-air-13" />
+        </div>
         <!-- Product Meta -->
         <div class="product-meta">
           <h2>Apple MacBook Air 13.3 inch Intel Core i5 1.8GHz 8GB</h2>
@@ -3183,28 +3209,36 @@
         <h3>Related Items</h3>
         <div class="related-grid">
           <div class="related-card" onclick="showPage('product-detail')">
-            <div class="related-card-img">⌨️</div>
+            <div class="related-card-img">
+              <img src="img/keyboard.png" alt="keyboard" />
+            </div>
             <div class="related-card-info">
               <h4>Philips SPT6224 Black Keyboard and Mouse Set USB</h4>
               <p class="price">SGD 89.30</p>
             </div>
           </div>
           <div class="related-card" onclick="showPage('product-detail')">
-            <div class="related-card-img">📱</div>
+            <div class="related-card-img">
+              <img src="img/samsung-phone.png" alt="samsung-phone" />
+            </div>
             <div class="related-card-info">
               <h4>Samsung Galaxy S21 Ultra 256GB</h4>
               <p class="price">SGD 1,199.00</p>
             </div>
           </div>
           <div class="related-card" onclick="showPage('product-detail')">
-            <div class="related-card-img">💻</div>
+            <div class="related-card-img">
+              <img src="img/acer.png" alt="acer" />
+            </div>
             <div class="related-card-info">
               <h4>Acer Aspire 3 15.6" AMD A9-Series 9420 3GHz 4GB</h4>
               <p class="price">SGD 400.00</p>
             </div>
           </div>
           <div class="related-card" onclick="showPage('product-detail')">
-            <div class="related-card-img">💻</div>
+            <div class="related-card-img">
+              <div class="mp-card-img"><img src="img/hp.png" alt="hp" /></div>
+            </div>
             <div class="related-card-info">
               <h4>HP 250 G6 15.6" Intel Core i5 7200U 2.5GHz 8GB</h4>
               <p class="price">SGD 575.00</p>
@@ -3276,41 +3310,30 @@
         </div>
         <div class="cart-item">
           <div class="cart-item-product">
-            <div class="cart-item-img">💻</div>
+            <div class="cart-item-img">
+              <img src="img/mb-air-13.png" alt="mb-air-13" />
+            </div>
             <span>Apple MacBook Air 13.3"</span>
           </div>
           <span>SGD 898.94</span>
           <div class="cart-qty">
             <button class="cart-qty-btn">−</button
-            ><span class="cart-qty-num">1</span
+            ><span class="cart-qty-num">2</span
             ><button class="cart-qty-btn">+</button>
           </div>
-          <span>SGD 898.94</span>
-        </div>
-        <div class="cart-item">
-          <div class="cart-item-product">
-            <div class="cart-item-img">⌨️</div>
-            <span>Philips Keyboard & Mouse Set</span>
-          </div>
-          <span>SGD 89.30</span>
-          <div class="cart-qty">
-            <button class="cart-qty-btn">−</button
-            ><span class="cart-qty-num">1</span
-            ><button class="cart-qty-btn">+</button>
-          </div>
-          <span>SGD 89.30</span>
+          <span>SGD 1,797.88</span>
         </div>
         <div class="cart-bottom">
           <div class="cart-summary">
             <h3>Cart Total</h3>
             <div class="cart-row">
-              <span>Subtotal:</span><span>SGD 988.24</span>
+              <span>Subtotal:</span><span>SGD 1,797.88</span>
             </div>
             <div class="cart-row">
               <span>Shipping:</span><span style="color: #00c851">Free</span>
             </div>
             <div class="cart-row">
-              <span>Total:</span><span>SGD 988.24</span>
+              <span>Total:</span><span>SGD 1,797.88</span>
             </div>
             <button
               class="btn-orange"
@@ -3432,7 +3455,9 @@
         </div>
         <div class="checkout-right">
           <div class="order-product-row">
-            <div class="order-product-img">💻</div>
+            <div class="order-product-img">
+              <img src="img/mb-air-13.png" alt="mb-air-13" />
+            </div>
             <div class="order-product-info">
               <h4>Apple MacBook Air 13" × 2</h4>
             </div>
@@ -3440,13 +3465,13 @@
           </div>
           <div class="order-summary-rows">
             <div class="order-row">
-              <span>Subtotal:</span><span>SGD 988.24</span>
+              <span>Subtotal:</span><span>SGD SGD 1,797.88</span>
             </div>
             <div class="order-row">
               <span>Shipping:</span><span style="color: #00c851">Free</span>
             </div>
             <div class="order-row">
-              <span>Total:</span><span>SGD 988.24</span>
+              <span>Total:</span><span>SGD SGD 1,797.88</span>
             </div>
           </div>
           <div class="payment-options">
@@ -3690,10 +3715,7 @@
         </div>
       </div>
       <div style="text-align: center; margin-top: 8px">
-        <button
-          class="btn-primary"
-          style="font-size: 17px; padding: 16px 48px"
-        >
+        <button class="btn-primary" style="font-size: 17px; padding: 16px 48px">
           Submit Listing
         </button>
       </div>
