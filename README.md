@@ -50,6 +50,15 @@ python -m venv .venv
 
 # 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Activate Chatbot
+python web_chatbot.py
+
+# 5. Open another terminal
+cd frontend
+
+# 6. Run web UI
+npm run dev
 ```
 
 If you don’t want to use `requirements.txt`, the **minimum libraries** needed for the console apps are:
@@ -67,12 +76,8 @@ python fmv_engine.py
 # Assistant side – console
 python specs_to_need_bot.py
 
-# web UI
+# Assistant sid3 - web UI
 python web_chatbot.py
-
-# open another terminal
-cd frontend
-npm run dev
 ```
 
 ---
