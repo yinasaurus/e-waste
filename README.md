@@ -67,9 +67,12 @@ python fmv_engine.py
 # Assistant side – console
 python specs_to_need_bot.py
 
-# Assistant side – web UI (optional)
+# web UI
 python web_chatbot.py
-# then open http://127.0.0.1:8000 in your browser
+
+# open another terminal
+cd frontend
+npm run dev
 ```
 
 ---
