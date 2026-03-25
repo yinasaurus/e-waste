@@ -1,17 +1,22 @@
 from __future__ import annotations
 
-from flask import Flask, render_template, request
+import os
+
+from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 import pandas as pd
 
 from specs_to_need_bot import recommend_devices, estimate_used_price
 
 
 app = Flask(__name__)
+CORS(app)     # Allow cross-origin requests from the React frontend
 
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    query = ""
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    data = request.get_json() or {}
+    query = data.get("query", "").strip()
 
     summary = {
         "job_label": None,
@@ -29,9 +34,7 @@ def index():
     desktop_storage: list[dict] = []
     desktop_gpu: list[dict] = []
 
-    if request.method == "POST":
-        query = request.form.get("query", "").strip()
-        if query:
+    if query:
             # If the text clearly doesn't mention any device type or numbers,
             # treat it as an invalid/ambiguous query instead of returning random results.
             lowered = query.lower()
@@ -187,8 +190,7 @@ def index():
                         }
                     )
 
-    return render_template(
-        "index.html",
+    return jsonify(
         query=query,
         summary=summary,
         laptops=laptops,
@@ -199,8 +201,12 @@ def index():
         desktop_ram=desktop_ram,
         desktop_storage=desktop_storage,
         desktop_gpu=desktop_gpu,
-    )
+    ), 200
 
+# Keep the original route for backward compatibility locally if needed
+@app.route("/", methods=["GET", "POST"])
+def index():
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000, debug=True)
