@@ -337,6 +337,24 @@ desktop_power_inventory = newegg_raw[newegg_raw["Category"] == "power"].copy()
 desktop_motherboard_inventory = newegg_raw[newegg_raw["Category"] == "motherboard"].copy()
 
 
+def _has_word(haystack: str, word: str) -> bool:
+    """Whole-word match (avoids 'ai' in 'plain', 'ml' inside unrelated tokens)."""
+    if not word or not haystack:
+        return False
+    return bool(re.search(rf"\b{re.escape(word)}\b", haystack))
+
+
+def _parse_k_sgd_budget(text_lower: str) -> int | None:
+    """e.g. 1.5k → 1500; skips '4k monitor' style resolution phrases."""
+    m = re.search(
+        r"\b(\d+(?:\.\d+)?)\s*k\b(?!\s*(?:monitor|display|screen|tv|panel|hdr|uhd|oled))",
+        text_lower,
+    )
+    if not m:
+        return None
+    return int(float(m.group(1)) * 1000)
+
+
 # ---------- 2. NLP parsing ----------
 def parse_requirements(text: str) -> dict:
     """Parse free-text user requirements into structured fields."""
@@ -354,11 +372,17 @@ def parse_requirements(text: str) -> dict:
         "labtop": "laptop",
         "lapotp": "laptop",
         "latop": "laptop",
+        "laptp": "laptop",
+        "keybord": "keyboard",
+        "keybard": "keyboard",
         "andriod": "android",
         "andorid": "android",
         "andorjd": "android",
         "ipdad": "ipad",
         "ipda": "ipad",
+        "desktp": "desktop",
+        "grafics": "graphics",
+        "gamin": "gaming",
     }
     for wrong, correct in typo_map.items():
         text_lower = text_lower.replace(wrong, correct)
@@ -398,43 +422,76 @@ def parse_requirements(text: str) -> dict:
     for num in iphone_model_nums:
         text_for_budget = re.sub(rf"\b{num}\b", "", text_for_budget)
 
-    # Budget: look for phrases like "under 1500", "budget 1200", "around 1000"
-    budget_pattern = r"(under|below|budget|around|less than|\$)\s*\$?\s*(\d+)"
-    budget_match = re.search(budget_pattern, text_for_budget)
+    # Strip storage sizes so "512GB SSD" is not parsed as budget 512
+    text_for_budget = re.sub(
+        r"\b\d{1,4}\s*(?:gb|tb)\b",
+        " ",
+        text_for_budget,
+        flags=re.IGNORECASE,
+    )
+
+    def _normalize_money_num(s: str) -> int:
+        return int(str(s).replace(",", "").replace(" ", ""))
+
+    # Budget: under/budget/up-to/max/S$, then 1.5k-style, then a cautious standalone number
+    budget = None
+    budget_pattern = (
+        r"(?:under|below|budget(?:\s+of)?|around|about|approx(?:imately)?|less\s+than|"
+        r"up\s*to|upto|at\s+most|max(?:imum)?|cap)\s*(?:sgd|\$)?\s*([\d,]+(?:\.\d+)?)"
+        r"|(?:sgd|\$)\s*([\d,]+(?:\.\d+)?)"
+    )
+    budget_match = re.search(budget_pattern, text_for_budget, flags=re.IGNORECASE)
     if budget_match:
-        budget = int(budget_match.group(2))
-    else:
-        # fallback: look for a standalone number, but avoid confusing it with quantity
-        loose_match = re.search(r"\$?\s*(\d+)", text_for_budget)
+        raw_amt = next(g for g in budget_match.groups() if g)
+        end = budget_match.end()
+        remainder = text_for_budget[end:].lstrip().lower()
+        base = float(str(raw_amt).replace(",", ""))
+        if remainder.startswith("k"):
+            budget = int(base * 1000)
+        else:
+            budget = int(base)
+    if budget is None:
+        k_amt = _parse_k_sgd_budget(text_for_budget)
+        if k_amt is not None:
+            budget = k_amt
+    if budget is None:
+        loose_match = re.search(
+            r"(?:^|\s)\$?\s*([\d,]+(?:\.\d+)?)(\s*k\b)?",
+            text_for_budget,
+            flags=re.IGNORECASE,
+        )
         if loose_match:
-            candidate = int(loose_match.group(1))
-            # if this number is exactly the quantity (e.g. "1 laptop") and we
-            # already captured quantity, treat it as quantity only, not budget
+            base = float(str(loose_match.group(1)).replace(",", ""))
+            if loose_match.group(2):
+                base *= 1000
+            candidate = int(base)
             if quantity is not None and candidate == quantity:
                 budget = None
-            # also ignore obviously too-small "budgets" like 12 from "iphone 12"
             elif candidate < 100:
                 budget = None
             else:
                 budget = candidate
-        else:
-            budget = None
 
     # OS preference
     if "mac" in text_lower or "macos" in text_lower:
         os_pref = "mac"
-    elif "windows" in text_lower:
+    elif "windows" in text_lower or "win11" in text_lower or "win 11" in text_lower:
         os_pref = "windows"
+    elif "linux" in text_lower or "ubuntu" in text_lower or "fedora" in text_lower:
+        os_pref = "linux"
     else:
         os_pref = "any"
 
-    # Job function / use-case (simple keyword-based)
+    # Job function / use-case (order matters: gaming before student for "student gamer" queries)
     if (
         "video" in text_lower
         or "editing" in text_lower
         or "premiere" in text_lower
         or "after effects" in text_lower
         or "davinci" in text_lower
+        or "streaming" in text_lower
+        or "twitch" in text_lower
+        or _has_word(text_lower, "obs")
     ):
         job = "video_editing"
     elif (
@@ -448,6 +505,9 @@ def parse_requirements(text: str) -> dict:
         or "canva" in text_lower
         or "figma" in text_lower
         or "indesign" in text_lower
+        or "cad" in text_lower
+        or "autocad" in text_lower
+        or "solidworks" in text_lower
     ):
         job = "creative_design"
     elif (
@@ -461,20 +521,29 @@ def parse_requirements(text: str) -> dict:
     ):
         job = "accounting"
     elif (
-        "data" in text_lower
-        or "ml" in text_lower
-        or "ai" in text_lower
-        or "analytics" in text_lower
-        or "analysis" in text_lower
-        or "tableau" in text_lower
+        "data science" in text_lower
+        or "machine learning" in text_lower
+        or "deep learning" in text_lower
+        or "neural net" in text_lower
+        or "jupyter" in text_lower
+        or "pandas" in text_lower
+        or "tensorflow" in text_lower
+        or "pytorch" in text_lower
+        or "scikit" in text_lower
         or "power bi" in text_lower
-        or "sql" in text_lower
+        or "tableau" in text_lower
+        or _has_word(text_lower, "analytics")
+        or _has_word(text_lower, "statistics")
+        or _has_word(text_lower, "sql")
+        or _has_word(text_lower, "ml")
+        or _has_word(text_lower, "etl")
+        or _has_word(text_lower, "ai")
     ):
         job = "data_science"
     elif (
         "developer" in text_lower
         or "coding" in text_lower
-        or "code" in text_lower
+        or _has_word(text_lower, "code")
         or "programming" in text_lower
         or "software engineer" in text_lower
         or "web dev" in text_lower
@@ -482,12 +551,39 @@ def parse_requirements(text: str) -> dict:
         or "java " in text_lower
         or "c++" in text_lower
         or "javascript" in text_lower
+        or "typescript" in text_lower
         or "vscode" in text_lower
         or "visual studio" in text_lower
         or "github" in text_lower
-        or "app" in text_lower
+        or "docker" in text_lower
+        or "kubernetes" in text_lower
+        or _has_word(text_lower, "devops")
+        or "frontend" in text_lower
+        or "backend" in text_lower
+        or "full stack" in text_lower
+        or "fullstack" in text_lower
+        or "mobile app" in text_lower
+        or "web app" in text_lower
+        or "android app" in text_lower
+        or "ios app" in text_lower
     ):
         job = "software_dev"
+    elif (
+        "gaming" in text_lower
+        or "games" in text_lower
+        or _has_word(text_lower, "game")
+        or "valorant" in text_lower
+        or "dota" in text_lower
+        or "csgo" in text_lower
+        or "counter-strike" in text_lower
+        or "league of legends" in text_lower
+        or "fortnite" in text_lower
+        or "minecraft" in text_lower
+        or "steam" in text_lower
+        or "fps" in text_lower
+        or "esports" in text_lower
+    ):
+        job = "gaming"
     elif (
         "student" in text_lower
         or "school" in text_lower
@@ -501,22 +597,18 @@ def parse_requirements(text: str) -> dict:
         or "notes" in text_lower
     ):
         job = "student_use"
-    elif (
-        "gaming" in text_lower
-        or "games" in text_lower
-        or "game" in text_lower
-        or "valorant" in text_lower
-        or "dota" in text_lower
-        or "csgo" in text_lower
-        or "league of legends" in text_lower
-        or "steam" in text_lower
-    ):
-        job = "gaming"
     else:
         job = "general_office"
 
     # Core device type: treat "pc/computer" as desktop unless "laptop/notebook" is mentioned.
-    wants_laptop = ("laptop" in text_lower) or ("notebook" in text_lower)
+    wants_laptop = (
+        ("laptop" in text_lower)
+        or ("notebook" in text_lower)
+        or ("macbook" in text_lower)
+        or ("chromebook" in text_lower)
+        or ("ultrabook" in text_lower)
+        or ("surface laptop" in text_lower)
+    )
     pc_like = ("pc" in text_lower) or ("computer" in text_lower) or ("computers" in text_lower)
     wants_desktop = (
         ("desktop" in text_lower)
@@ -527,9 +619,23 @@ def parse_requirements(text: str) -> dict:
     wants_mouse = "mouse" in text_lower or "mice" in text_lower
     wants_keyboard = "keyboard" in text_lower or "keycaps" in text_lower
     wants_phone = (
-        "phone" in text_lower or "smartphone" in text_lower or "mobile" in text_lower
+        "phone" in text_lower
+        or "smartphone" in text_lower
+        or "iphone" in text_lower
+        or "galaxy" in text_lower
+        or _has_word(text_lower, "pixel")
+        or _has_word(text_lower, "oneplus")
+        or _has_word(text_lower, "xiaomi")
     )
-    wants_tablet = "tablet" in text_lower or "ipad" in text_lower
+    wants_tablet = (
+        "tablet" in text_lower
+        or "ipad" in text_lower
+        or (
+            "surface" in text_lower
+            and "surface laptop" not in text_lower
+            and not wants_laptop
+        )
+    )
 
     return {
         "job_function": job,
@@ -832,10 +938,75 @@ def _recommend_desktop_components(req: dict, top_k: int = 3) -> dict[str, pd.Dat
     }
 
 
+def _select_laptops(req: dict, spec: dict, top_k: int) -> tuple[pd.DataFrame, str | None]:
+    """Pick laptops with tiered relaxation (budget / dedicated GPU) and optional user-facing note."""
+    raw = req.get("raw_text", "").lower()
+    budget = req.get("budget")
+
+    def _sort(df: pd.DataFrame) -> pd.DataFrame:
+        if df.empty:
+            return df
+        if "expensive" in raw or "premium" in raw or "high end" in raw:
+            return df.sort_values("price_sgd", ascending=False)
+        return df.sort_values("price_sgd", ascending=True)
+
+    def _apply_os(df: pd.DataFrame) -> pd.DataFrame:
+        if df.empty:
+            return df
+        if req["os_pref"] == "mac":
+            return df[df["brand"] == "Apple"]
+        if req["os_pref"] in ("windows", "linux"):
+            return df[df["brand"] != "Apple"]
+        return df
+
+    def _build(*, use_budget: bool, dedicated_gpu_only: bool) -> pd.DataFrame:
+        df = laptop_inventory[
+            (laptop_inventory["ram_gb"] >= spec["min_ram"])
+            & (laptop_inventory["storage_gb"] >= spec["min_storage"])
+        ]
+        if dedicated_gpu_only:
+            df = df[df["gpu_type"] == "dedicated"]
+        if use_budget and budget:
+            df = df[df["price_sgd"] <= budget]
+        df = _apply_os(df)
+        if df.empty:
+            return df
+        return _sort(df)
+
+    full = _build(use_budget=True, dedicated_gpu_only=spec["needs_gpu"])
+    if not full.empty:
+        return full.head(top_k), None
+
+    if budget:
+        relaxed = _build(use_budget=False, dedicated_gpu_only=spec["needs_gpu"])
+        if not relaxed.empty:
+            return relaxed.head(top_k), (
+                "No laptops matched under your budget; showing the best spec fits "
+                "without a price cap."
+            )
+
+    if spec["needs_gpu"]:
+        mid = _build(use_budget=True, dedicated_gpu_only=False)
+        if not mid.empty:
+            return mid.head(top_k), (
+                "No dedicated-GPU laptops matched your filters; showing strong "
+                "integrated-GPU options instead."
+            )
+        if budget:
+            mid2 = _build(use_budget=False, dedicated_gpu_only=False)
+            if not mid2.empty:
+                return mid2.head(top_k), (
+                    "Relaxed GPU and budget to still show useful laptop options."
+                )
+
+    return laptop_inventory.head(0), None
+
+
 def recommend_devices(user_text: str, top_k: int = 3):
     """Return parsed requirements and top matching laptops (and mice) from inventory."""
     req = parse_requirements(user_text)
     spec = job_to_min_specs(req["job_function"])
+    req.pop("assistant_note", None)
 
     # Only recommend core devices when the user asks for them explicitly,
     # otherwise fall back to laptops if they didn't specify any accessories.
@@ -849,44 +1020,9 @@ def recommend_devices(user_text: str, top_k: int = 3):
     wants_desktop = req.get("wants_desktop", False)
 
     if wants_laptop or (not wants_desktop and not wants_any_accessory):
-        laptop_candidates = laptop_inventory[
-            (laptop_inventory["ram_gb"] >= spec["min_ram"])
-            & (laptop_inventory["storage_gb"] >= spec["min_storage"])
-        ]
-
-        if spec["needs_gpu"]:
-            laptop_candidates = laptop_candidates[
-                laptop_candidates["gpu_type"] == "dedicated"
-            ]
-
-        # Budget filter (per device), interpreted as SGD
-        if req["budget"]:
-            laptop_candidates = laptop_candidates[
-                laptop_candidates["price_sgd"] <= req["budget"]
-            ]
-
-        # OS preference
-        if req["os_pref"] == "mac":
-            laptop_candidates = laptop_candidates[
-                laptop_candidates["brand"] == "Apple"
-            ]
-        elif req["os_pref"] == "windows":
-            laptop_candidates = laptop_candidates[
-                laptop_candidates["brand"] != "Apple"
-            ]
-
-        raw = req.get("raw_text", "").lower()
-        # Sort:
-        # - if "expensive"/"premium": highest price first
-        # - else: lower price first
-        if "expensive" in raw or "premium" in raw or "high end" in raw:
-            laptop_candidates = laptop_candidates.sort_values(
-                "price_sgd", ascending=False
-            ).head(top_k)
-        else:
-            laptop_candidates = laptop_candidates.sort_values(
-                "price_sgd", ascending=True
-            ).head(top_k)
+        laptop_candidates, lap_note = _select_laptops(req, spec, top_k)
+        if lap_note:
+            req["assistant_note"] = lap_note
     else:
         laptop_candidates = laptop_inventory.head(0)
 

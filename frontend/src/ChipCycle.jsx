@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FmvEstimator from './FmvEstimator';
 import './index.css';
 
 export default function ChipCycle() {
@@ -54,6 +55,11 @@ export default function ChipCycle() {
           <a onClick={() => {showPage('marketplace')}} className="nav-link-item"
             >Marketplace</a
           >
+        </li>
+        <li>
+          <a onClick={() => {showPage('fmv')}} className="nav-link-item">
+            FMV Check
+          </a>
         </li>
         {isLoggedIn && (
         <li>
@@ -351,7 +357,7 @@ export default function ChipCycle() {
               <span className="forgot-link">Forget Password?</span>
             </div>
             <p className="login-signup">
-              Don't have an account?
+              Don't have an account?&nbsp;
               <span onClick={() => {showPage('home')}}>Sign Up</span>
             </p>
           </div>
@@ -514,6 +520,66 @@ export default function ChipCycle() {
             <h5>Quick Link</h5>
             <ul>
               <li><a onClick={() => {showPage('marketplace')}}>Marketplace</a></li>
+              {isLoggedIn && ( <li><a onClick={() => {showPage('list-hardware')}}>Sell Hardware</a></li> )}
+              <li><a onClick={() => {showPage('how-it-works')}}>How It Works</a></li>
+              <li><a onClick={() => {showPage('about')}}>About Us</a></li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <ul>
+              <li><a>Privacy Policy</a></li>
+              <li><a>Terms of Use</a></li>
+              <li><a>FAQ</a></li>
+              <li><a>Contact</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          <span>©</span>
+          <p>ChipCycle 2024. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+
+    {/*  ════════════════════════════════════════════════
+     PAGE: FMV CHECK
+════════════════════════════════════════════════  */}
+    <div id="page-fmv" className={`page ${activePage === "fmv" ? "active" : ""}`}>
+      <div className="page-header">
+        <div className="breadcrumb">Home <span>/ FMV Check</span></div>
+        <div className="page-title">Fair market value</div>
+      </div>
+      <FmvEstimator />
+      <footer>
+        <div className="footer-grid">
+          <div className="footer-col footer-support">
+            <h5>Support</h5>
+            <p>Singapore, SG</p>
+            <p>hello@chipcycle.sg</p>
+            <p>+65 8888-9999</p>
+            <div className="footer-socials">
+              <span className="social-icon">f</span>
+              <span className="social-icon">𝕏</span>
+              <span className="social-icon">in</span>
+              <span className="social-icon">📷</span>
+            </div>
+          </div>
+
+          <div className="footer-col">
+            <h5>Account</h5>
+            <ul>
+              <li><a onClick={() => {showPage('profile')}}>My Account</a></li>
+              <li><a onClick={() => {showPage('cart')}}>Cart</a></li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <h5>Quick Link</h5>
+            <ul>
+              <li><a onClick={() => {showPage('marketplace')}}>Marketplace</a></li>
+              <li><a onClick={() => {showPage('fmv')}}>FMV Check</a></li>
               {isLoggedIn && ( <li><a onClick={() => {showPage('list-hardware')}}>Sell Hardware</a></li> )}
               <li><a onClick={() => {showPage('how-it-works')}}>How It Works</a></li>
               <li><a onClick={() => {showPage('about')}}>About Us</a></li>

@@ -1,23 +1,55 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, ChevronDown, Minus } from 'lucide-react';
+import { API_BASE } from './config';
 import './ChatbotWidget.css';
+
+const RESULT_KEYS = [
+  'laptops',
+  'keyboards',
+  'phones',
+  'ipads',
+  'desktop_cpu',
+  'desktop_ram',
+  'desktop_storage',
+  'desktop_gpu',
+];
+
+function hasRecommendations(data) {
+  if (!data) return false;
+  return RESULT_KEYS.some((k) => Array.isArray(data[k]) && data[k].length > 0);
+}
+
+function buildSummaryIntro(data) {
+  const s = data.summary || {};
+  const parts = [];
+  if (s.job_label) parts.push(s.job_label);
+  if (s.quantity != null && s.quantity !== '') {
+    parts.push(`Qty: ${s.quantity}`);
+  }
+  if (s.budget != null && s.budget !== '') {
+    parts.push(`Budget cap: S$${s.budget}`);
+  }
+  const head = parts.length ? parts.join(' · ') : 'General use';
+  return `Here are some picks for ${head}. “Used” is a rough second-hand guide (~⅔ of new).`;
+}
 
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Initial bot message
+
   const [messages, setMessages] = useState([
     {
       id: 1,
       sender: 'bot',
       type: 'primary',
-      text: 'Hi there! I am Chip, your Specs-to-Need Assistant. Tell me what you need and your budget (e.g. "gaming desktop under 2500" or "ipad for student with keyboard")!',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
+      text:
+        "Hi — I'm Chip, your Specs-to-Need assistant. Say what you need and a budget (e.g. “gaming laptop under 2000” or “office desktop 3500”). " +
+        'For a structured laptop price from specs, use FMV Check in the main site menu — that uses a different model than this chat.',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
   ]);
-  
+
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -35,61 +67,85 @@ export default function ChatbotWidget() {
 
     const newQueryText = textToQuery.trim();
     setQuery('');
-    
-    // Add user message
+
     const userMsg = {
       id: Date.now(),
       sender: 'user',
       text: newQueryText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
-    
-    setMessages(prev => [...prev, userMsg]);
+
+    setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/chat', {
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: newQueryText })
+        body: JSON.stringify({ query: newQueryText }),
       });
-      
-      const data = await response.json();
-      
-      let botResponseText = '';
-      let botContentData = null;
 
-      if (data.summary?.error) {
-        botResponseText = data.summary.error;
-      } else if (!data.laptops?.length && !data.desktop_cpu?.length && !data.keyboards?.length && !data.phones?.length && !data.ipads?.length) {
-        botResponseText = "No matching devices found for this query.";
-      } else {
-        botResponseText = `Here are some recommendations for ${data.summary.job_label || 'General Use'}. Budget: ${data.summary.budget ? 'S$' + data.summary.budget : 'N/A'}`;
-        botContentData = data; // store full data to render tables
+      let data = {};
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
       }
 
-      const botMsg = {
-        id: Date.now() + 1,
-        sender: 'bot',
-        type: messages.length % 2 === 0 ? 'primary' : 'secondary',
-        text: botResponseText,
-        data: botContentData,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
+      let botResponseText = '';
+      let botContentData = null;
+      let preformatted = false;
 
-      setMessages(prev => [...prev, botMsg]);
+      if (!response.ok) {
+        botResponseText =
+          data.error ||
+          data.message ||
+          `Request failed (${response.status}). Check that the Flask app is running on ${API_BASE}.`;
+      } else if (data.summary?.info) {
+        botResponseText = data.summary.info;
+        preformatted = true;
+      } else if (data.summary?.error) {
+        botResponseText = data.summary.error;
+      } else if (!hasRecommendations(data)) {
+        botResponseText =
+          'No matching rows for this query. Try naming a device type (laptop, desktop, phone, iPad, keyboard) and a budget, e.g. “student laptop under 1200”.';
+      } else {
+        botResponseText = buildSummaryIntro(data);
+        botContentData = data;
+      }
+
+      const hint =
+        response.ok && !data.summary?.info && !data.summary?.error
+          ? data.summary?.hint || null
+          : null;
+
+      setMessages((prev) => {
+        const botMsg = {
+          id: Date.now() + 1,
+          sender: 'bot',
+          type: prev.length % 2 === 0 ? 'primary' : 'secondary',
+          text: botResponseText,
+          data: botContentData,
+          hint,
+          preformatted,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        return [...prev, botMsg];
+      });
     } catch (err) {
       console.error(err);
-      const errorMsg = {
-        id: Date.now() + 1,
-        sender: 'bot',
-        type: 'secondary',
-        text: 'Sorry, I am having trouble connecting to the server. Is the Python backend running?',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          sender: 'bot',
+          type: 'secondary',
+          text: `Sorry — I could not reach the server. Is the Python backend running at ${API_BASE}?`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -97,36 +153,111 @@ export default function ChatbotWidget() {
 
   const renderDataTables = (data) => {
     if (!data) return null;
+    const maxRows = 5;
     return (
-      <div style={{ marginTop: 10 }}>
+      <div className="message-tables">
         {data.laptops && data.laptops.length > 0 && (
-          <div style={{ marginBottom: 10 }}>
-            <strong style={{ fontSize: 13, color: '#ff9100' }}>Laptops</strong>
+          <div className="message-table-section">
+            <strong className="message-table-title">Laptops</strong>
             <table className="message-table">
-              <thead><tr><th>Brand/Model</th><th>New</th><th>Used</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Brand / model</th>
+                  <th>New</th>
+                  <th>Used</th>
+                </tr>
+              </thead>
               <tbody>
-                {data.laptops.slice(0, 3).map((l, i) => (
-                  <tr key={i}><td>{l.brand} {l.model}</td><td>S${Math.round(l.new)}</td><td>S${Math.round(l.used)}</td></tr>
+                {data.laptops.slice(0, maxRows).map((l, i) => (
+                  <tr key={i}>
+                    <td>
+                      {l.brand} {l.model}
+                    </td>
+                    <td>S${Math.round(l.new)}</td>
+                    <td>S${Math.round(l.used)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        
-        {data.desktop_cpu && data.desktop_cpu.length > 0 && (
-          <div style={{ marginBottom: 10 }}>
-            <strong style={{ fontSize: 13, color: '#ff9100' }}>Desktop Build Parts</strong>
+
+        {data.desktop_cpu &&
+          (data.desktop_cpu.length > 0 ||
+            (data.desktop_ram && data.desktop_ram.length > 0) ||
+            (data.desktop_storage && data.desktop_storage.length > 0) ||
+            (data.desktop_gpu && data.desktop_gpu.length > 0)) && (
+            <div className="message-table-section">
+              <strong className="message-table-title">Desktop parts</strong>
+              <table className="message-table">
+                <thead>
+                  <tr>
+                    <th>Part</th>
+                    <th>New</th>
+                    <th>Used</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.desktop_cpu?.slice(0, 1).map((c, i) => (
+                    <tr key={`cpu${i}`}>
+                      <td>
+                        CPU: {c.brand} {c.item}
+                      </td>
+                      <td>S${Math.round(c.new)}</td>
+                      <td>S${Math.round(c.used)}</td>
+                    </tr>
+                  ))}
+                  {data.desktop_ram?.slice(0, 1).map((r, i) => (
+                    <tr key={`ram${i}`}>
+                      <td>RAM: {r.ram_gb} GB</td>
+                      <td>S${Math.round(r.new)}</td>
+                      <td>S${Math.round(r.used)}</td>
+                    </tr>
+                  ))}
+                  {data.desktop_storage?.slice(0, 1).map((s, i) => (
+                    <tr key={`st${i}`}>
+                      <td>
+                        Storage: {s.storage_gb} GB ({s.storage_type})
+                      </td>
+                      <td>S${Math.round(s.new)}</td>
+                      <td>S${Math.round(s.used)}</td>
+                    </tr>
+                  ))}
+                  {data.desktop_gpu?.slice(0, 1).map((g, i) => (
+                    <tr key={`gpu${i}`}>
+                      <td>
+                        GPU: {g.brand} {g.item}
+                      </td>
+                      <td>S${Math.round(g.new)}</td>
+                      <td>S${Math.round(g.used)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+        {data.keyboards && data.keyboards.length > 0 && (
+          <div className="message-table-section">
+            <strong className="message-table-title">Keyboards</strong>
             <table className="message-table">
-              <thead><tr><th>Component</th><th>New</th><th>Used</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>New</th>
+                  <th>Used</th>
+                </tr>
+              </thead>
               <tbody>
-                {data.desktop_cpu.slice(0, 1).map((c, i) => (
-                  <tr key={'cpu'+i}><td>CPU: {c.brand}</td><td>S${Math.round(c.new)}</td><td>S${Math.round(c.used)}</td></tr>
-                ))}
-                {data.desktop_ram && data.desktop_ram.slice(0, 1).map((r, i) => (
-                  <tr key={'ram'+i}><td>RAM: {r.ram_gb}GB</td><td>S${Math.round(r.new)}</td><td>S${Math.round(r.used)}</td></tr>
-                ))}
-                {data.desktop_storage && data.desktop_storage.slice(0, 1).map((s, i) => (
-                  <tr key={'storage'+i}><td>Storage: {s.storage_gb}GB</td><td>S${Math.round(s.new)}</td><td>S${Math.round(s.used)}</td></tr>
+                {data.keyboards.slice(0, maxRows).map((k, i) => (
+                  <tr key={i}>
+                    <td>
+                      {k.name}
+                      {k.connection ? ` (${k.connection})` : ''}
+                    </td>
+                    <td>S${Math.round(k.new)}</td>
+                    <td>S${Math.round(k.used)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -134,13 +265,25 @@ export default function ChatbotWidget() {
         )}
 
         {data.ipads && data.ipads.length > 0 && (
-          <div style={{ marginBottom: 10 }}>
-            <strong style={{ fontSize: 13, color: '#ff9100' }}>Tablets</strong>
+          <div className="message-table-section">
+            <strong className="message-table-title">Tablets</strong>
             <table className="message-table">
-              <thead><tr><th>Model/Storage</th><th>New</th><th>Used</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Model / storage</th>
+                  <th>New</th>
+                  <th>Used</th>
+                </tr>
+              </thead>
               <tbody>
-                {data.ipads.slice(0, 3).map((p, i) => (
-                  <tr key={i}><td>{p.model} {p.storage}</td><td>S${Math.round(p.new)}</td><td>S${Math.round(p.used)}</td></tr>
+                {data.ipads.slice(0, maxRows).map((p, i) => (
+                  <tr key={i}>
+                    <td>
+                      {p.model} {p.storage}
+                    </td>
+                    <td>S${Math.round(p.new)}</td>
+                    <td>S${Math.round(p.used)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -148,13 +291,25 @@ export default function ChatbotWidget() {
         )}
 
         {data.phones && data.phones.length > 0 && (
-           <div style={{ marginBottom: 10 }}>
-            <strong style={{ fontSize: 13, color: '#ff9100' }}>Phones</strong>
+          <div className="message-table-section">
+            <strong className="message-table-title">Phones</strong>
             <table className="message-table">
-              <thead><tr><th>Model</th><th>New</th><th>Used</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>New</th>
+                  <th>Used</th>
+                </tr>
+              </thead>
               <tbody>
-                {data.phones.slice(0, 3).map((p, i) => (
-                  <tr key={i}><td>{p.brand} {p.model}</td><td>S${Math.round(p.new)}</td><td>S${Math.round(p.used)}</td></tr>
+                {data.phones.slice(0, maxRows).map((p, i) => (
+                  <tr key={i}>
+                    <td>
+                      {p.brand} {p.model}
+                    </td>
+                    <td>S${Math.round(p.new)}</td>
+                    <td>S${Math.round(p.used)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -164,102 +319,154 @@ export default function ChatbotWidget() {
     );
   };
 
+  const bubbleStyle = (msg) => {
+    if (msg.sender === 'user') {
+      return {
+        backgroundColor: '#f1f1f1',
+        color: '#333',
+        padding: '12px 16px',
+        borderRadius: '12px 12px 0 12px',
+        fontSize: 14,
+        whiteSpace: 'pre-wrap',
+      };
+    }
+    const base = {
+      color: 'white',
+      padding: '12px 16px',
+      borderRadius: '12px 12px 12px 0',
+      fontSize: 14,
+      whiteSpace: msg.preformatted ? 'pre-wrap' : 'normal',
+    };
+    if (msg.type === 'primary') {
+      return { ...base, backgroundColor: '#3b0764' };
+    }
+    return { ...base, backgroundColor: '#e5e7eb', color: '#1f2937' };
+  };
+
   return (
     <div className="chatbot-widget-container">
       {isOpen ? (
         <div className="chatbot-window">
-          {/* Header */}
           <div className="chatbot-header">
             <div className="chatbot-header-info">
               <div className="chatbot-avatar">
-                {/* Fallback to simple icon since img path may vary */}
-                <span><img src="img/chipcycle logo.png" alt="logo"/></span>
+                <span>
+                  <img src="img/chipcycle logo.png" alt="" />
+                </span>
               </div>
               <div className="chatbot-title">
                 <span className="chatbot-name">Ask Chip</span>
                 <span className="chatbot-status">
-                  <span className="status-dot"></span> Online
+                  <span className="status-dot" /> Online
                 </span>
               </div>
             </div>
-            <Minus className="chatbot-close" size={24} onClick={() => setIsOpen(false)} />
+            <button
+              type="button"
+              className="chatbot-close-btn"
+              aria-label="Close chat"
+              onClick={() => setIsOpen(false)}
+            >
+              <Minus className="chatbot-close" size={24} />
+            </button>
           </div>
 
-          {/* Chat Messages */}
           <div className="chatbot-messages">
-            {messages.map((msg, index) => (
+            {messages.map((msg) => (
               <div key={msg.id} className={`message-row ${msg.sender}`}>
                 {msg.sender === 'bot' ? (
                   <div className="message-avatar bot">
-                    <span><img src="img/chipcycle logo.png" alt="logo"/></span>
+                    <span>
+                      <img src="img/chipcycle logo.png" alt="" />
+                    </span>
                   </div>
                 ) : (
-                  <div className="message-avatar" style={{backgroundColor: '#e1e1e1'}}>
-                     <span role="img" aria-label="User" style={{ fontSize: 20 }}>👤</span>
+                  <div className="message-avatar user-avatar" aria-hidden>
+                    <span style={{ fontSize: 20 }}>👤</span>
                   </div>
                 )}
-                
-                <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '85%' }}>
-                   <div style={
-                     msg.sender === 'user' 
-                     ? { backgroundColor: '#f1f1f1', color: '#333', padding: '12px 16px', borderRadius: '12px 12px 0 12px', fontSize: 14 }
-                     : msg.type === 'primary' 
-                       ? { backgroundColor: '#3b0764', color: 'white', padding: '12px 16px', borderRadius: '12px 12px 12px 0', fontSize: 14 }
-                       : { backgroundColor: '#e5e7eb', color: '#1f2937', padding: '12px 16px', borderRadius: '12px 12px 12px 0', fontSize: 14 }
-                   }>
-                     {msg.text}
-                     {msg.data && renderDataTables(msg.data)}
-                   </div>
-                   <div className="message-time" style={msg.sender === 'user' ? { justifyContent: 'flex-end'} : {}}>
-                     {msg.time} {msg.sender === 'user' && <span style={{color: '#9d4edd', marginLeft: 2}}>✔</span>}
-                   </div>
+
+                <div className="message-body">
+                  <div style={bubbleStyle(msg)}>
+                    {msg.text}
+                    {msg.data && renderDataTables(msg.data)}
+                    {msg.hint && <p className="chatbot-hint">{msg.hint}</p>}
+                  </div>
+                  <div
+                    className="message-time"
+                    style={msg.sender === 'user' ? { justifyContent: 'flex-end' } : {}}
+                  >
+                    {msg.time}{' '}
+                    {msg.sender === 'user' && (
+                      <span style={{ color: '#9d4edd', marginLeft: 2 }}>✔</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
             {isLoading && (
               <div className="message-row bot">
-                 <div className="message-avatar bot">
-                    <span><img src="img/chipcycle logo.png" alt="logo"/></span>
+                <div className="message-avatar bot">
+                  <span>
+                    <img src="img/chipcycle logo.png" alt="" />
+                  </span>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: '#e5e7eb',
+                    padding: '12px',
+                    borderRadius: '12px 12px 12px 0',
+                  }}
+                >
+                  <div className="chat-loading">
+                    <div className="chat-loading-dot" />
+                    <div className="chat-loading-dot" />
+                    <div className="chat-loading-dot" />
                   </div>
-                 <div style={{ backgroundColor: '#e5e7eb', padding: '12px', borderRadius: '12px 12px 12px 0' }}>
-                   <div className="chat-loading">
-                    <div className="chat-loading-dot"></div>
-                    <div className="chat-loading-dot"></div>
-                    <div className="chat-loading-dot"></div>
-                   </div>
-                 </div>
+                </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
-          
-          {/* Quick Actions (Mock-like) */}
+
           <div className="chatbot-quick-actions">
-            <button className="chatbot-quick-action" onClick={() => handleSend('🤔 What is Specs-to-Need?')}>
-              🤔 What is Specs-to-Need?
+            <button
+              type="button"
+              className="chatbot-quick-action"
+              onClick={() => handleSend('What is Specs-to-Need?')}
+            >
+              What is Specs-to-Need?
             </button>
-            <button className="chatbot-quick-action" onClick={() => handleSend('💻 Need a Gaming Desktop')}>
-              💻 Gaming Desktop
+            <button
+              type="button"
+              className="chatbot-quick-action"
+              onClick={() => handleSend('Gaming desktop under 2500')}
+            >
+              Gaming desktop
             </button>
-            <button className="chatbot-quick-action" onClick={() => handleSend('🙋 Student iPad Recommendations')}>
-              🙋 Student Recommendations
+            <button
+              type="button"
+              className="chatbot-quick-action"
+              onClick={() => handleSend('Student iPad under 1200')}
+            >
+              Student iPad
             </button>
           </div>
-          
-          {/* Input Area */}
+
           <div className="chatbot-input-area">
             <div className="chatbot-input-container">
-              <input 
-                type="text" 
-                className="chatbot-input" 
-                placeholder="Type your message here..." 
+              <input
+                type="text"
+                className="chatbot-input"
+                placeholder="What do you need? (device + budget)"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                aria-label="Message to Chip"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSend();
                 }}
               />
-              <button className="chatbot-send-btn" onClick={() => handleSend()}>
+              <button type="button" className="chatbot-send-btn" aria-label="Send" onClick={() => handleSend()}>
                 <Send size={20} />
               </button>
             </div>
@@ -267,17 +474,18 @@ export default function ChatbotWidget() {
         </div>
       ) : null}
 
-      {/* Floating Toggle Button */}
-      <div className="chatbot-toggle" onClick={() => setIsOpen(!isOpen)}>
+      <button type="button" className="chatbot-toggle" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen} aria-label={isOpen ? 'Collapse chat' : 'Open Ask Chip'}>
         {isOpen ? (
           <ChevronDown color="white" size={32} />
         ) : (
           <>
-             <div className="chatbot-hover-pill">Ask Chip!</div>
-             <span><img src="img/chipcycle logo.png" alt="logo"/></span>
+            <div className="chatbot-hover-pill">Ask Chip!</div>
+            <span>
+              <img src="img/chipcycle logo.png" alt="" />
+            </span>
           </>
         )}
-      </div>
+      </button>
     </div>
   );
 }

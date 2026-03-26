@@ -179,7 +179,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 pipeline.fit(X_train, y_train)
 
 r2 = pipeline.score(X_test, y_test)
-print(f"Test R^2 score (demo on tiny synthetic data): {r2:.2f}")
+if __name__ == "__main__":
+    print(f"Test R^2 score (laptop_price hold-out): {r2:.2f}")
 
 
 # ---------- 3. Helper to predict FMV for one device ----------

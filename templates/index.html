@@ -234,10 +234,130 @@
       color: var(--text);
       font-size: 0.9rem;
     }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .fmv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 16px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 720px) {
+      .fmv-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--purple);
+      margin-bottom: 4px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--radius-input);
+      border: 1px solid var(--elevated);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      outline: none;
+      border-color: var(--purple);
+      box-shadow: 0 0 0 2px rgba(157, 78, 221, 0.2);
+    }
+
+    .field-full {
+      grid-column: 1 / -1;
+    }
   </style>
 </head>
 <body>
-  <div class="shell">
+  <div class="shell stack">
+    <div class="card">
+      <h1>Laptop FMV (analytics)</h1>
+      <div class="subtitle">
+        Fair market value from the trained model in <code>fmv_engine.py</code> (same feature columns as the laptop dataset).
+        Optional age and condition adjust the suggested second-hand ask.
+      </div>
+
+      <form method="post">
+        <input type="hidden" name="form_type" value="fmv" />
+        <div class="fmv-grid">
+          <div class="field">
+            <label for="fmv_brand">Brand</label>
+            <input id="fmv_brand" name="fmv_brand" type="text" value="{{ fmv_form.brand }}" placeholder="e.g. Dell" required />
+          </div>
+          <div class="field">
+            <label for="fmv_model">Model</label>
+            <input id="fmv_model" name="fmv_model" type="text" value="{{ fmv_form.model }}" placeholder="e.g. XPS 13" required />
+          </div>
+          <div class="field field-full">
+            <label for="fmv_cpu">CPU (full string helps the model)</label>
+            <input id="fmv_cpu" name="fmv_cpu" type="text" value="{{ fmv_form.cpu }}" placeholder="e.g. Intel Core i5 8250U 1.6GHz" required />
+          </div>
+          <div class="field">
+            <label for="fmv_ram">RAM (GB)</label>
+            <input id="fmv_ram" name="fmv_ram_gb" type="number" min="1" step="1" value="{{ fmv_form.ram_gb }}" required />
+          </div>
+          <div class="field">
+            <label for="fmv_storage">Storage (GB)</label>
+            <input id="fmv_storage" name="fmv_storage_gb" type="number" min="1" step="1" value="{{ fmv_form.storage_gb }}" required />
+          </div>
+          <div class="field">
+            <label for="fmv_storage_type">Storage type</label>
+            <select id="fmv_storage_type" name="fmv_storage_type">
+              <option value="SSD" {% if fmv_form.storage_type == 'SSD' %}selected{% endif %}>SSD</option>
+              <option value="HDD" {% if fmv_form.storage_type == 'HDD' %}selected{% endif %}>HDD</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fmv_gpu">GPU type</label>
+            <select id="fmv_gpu" name="fmv_gpu_type">
+              <option value="integrated" {% if fmv_form.gpu_type == 'integrated' %}selected{% endif %}>Integrated</option>
+              <option value="dedicated" {% if fmv_form.gpu_type == 'dedicated' %}selected{% endif %}>Dedicated</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fmv_age">Age (years, optional)</label>
+            <input id="fmv_age" name="fmv_age_years" type="number" min="0" step="0.5" value="{{ fmv_form.age_years }}" placeholder="e.g. 3" />
+          </div>
+          <div class="field">
+            <label for="fmv_cond">Condition (optional)</label>
+            <input id="fmv_cond" name="fmv_condition" type="text" value="{{ fmv_form.condition }}" placeholder="e.g. mint, B, fair" />
+          </div>
+        </div>
+        <button type="submit">Estimate FMV</button>
+      </form>
+
+      {% if fmv_result %}
+        {% if fmv_result.error %}
+        <div class="error-box">{{ fmv_result.error }}</div>
+        {% else %}
+        <div class="summary" style="margin-top: 16px;">
+          <div><strong>Predicted FMV (SGD, approx):</strong> S${{ fmv_result.fmv_sgd | round(2) }}</div>
+          <div><strong>Suggested 2nd-hand ask (heuristic):</strong> S${{ fmv_result.used_sgd | round | int }}</div>
+        </div>
+        {% endif %}
+      {% endif %}
+    </div>
+
     <div class="card">
       <h1>Specs‑to‑Need Assistant</h1>
       <div class="subtitle">
@@ -247,6 +367,7 @@
       </div>
 
       <form method="post">
+        <input type="hidden" name="form_type" value="assistant" />
         <textarea name="query" placeholder="Example: I need 1 gaming desktop under 2500, plus a monitor/keyboard/phone.">{{ query }}</textarea>
         <div class="examples">
           Examples:
@@ -262,6 +383,14 @@
       <div class="error-box">{{ summary.error }}</div>
       {% endif %}
 
+      {% if summary.info %}
+      <div class="summary" style="white-space: pre-wrap; margin-top: 16px;">{{ summary.info }}</div>
+      {% endif %}
+
+      {% if summary.hint %}
+      <p class="muted" style="margin-top: 12px; border-left: 3px solid #f97316; padding-left: 10px;"><strong>Note:</strong> {{ summary.hint }}</p>
+      {% endif %}
+
       {% if summary.quantity %}
       <div class="summary">
         <div><strong>Quantity:</strong> {{ summary.quantity or 'N/A' }}</div>
@@ -271,7 +400,7 @@
       </div>
       {% endif %}
 
-      {% if query and not summary.error %}
+      {% if query and not summary.error and not summary.info %}
       <p class="muted">
         <strong>Price guide:</strong> “New” is the dataset list price (approx). “Used” is a suggested
         2nd-hand asking price using a 2/3 rule plus simple adjustments. All prices are in SGD (approx).
@@ -491,7 +620,7 @@
       </table>
       {% endif %}
 
-      {% if not summary.error and not (laptops or desktop_cpu or desktop_ram or desktop_storage or desktop_gpu or keyboards or phones or ipads) and query %}
+      {% if not summary.error and not summary.info and not (laptops or desktop_cpu or desktop_ram or desktop_storage or desktop_gpu or keyboards or phones or ipads) and query %}
       <p class="muted">No matching devices found for this query.</p>
       {% endif %}
     </div>

@@ -13,6 +13,8 @@
 .chatbot-toggle {
   width: 70px;
   height: 70px;
+  border: none;
+  padding: 0;
   background-color: #ff9100;
   border-radius: 50%;
   box-shadow: 0 4px 14px rgba(255, 145, 0, 0.4);
@@ -142,6 +144,52 @@
 
 .chatbot-close:hover {
   opacity: 1;
+}
+
+.chatbot-close-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.message-body {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.message-avatar.user-avatar {
+  background-color: #e1e1e1;
+}
+
+.message-tables {
+  margin-top: 10px;
+}
+
+.message-table-section {
+  margin-bottom: 10px;
+}
+
+.message-table-title {
+  display: block;
+  font-size: 13px;
+  color: #ff9100;
+  margin-bottom: 4px;
+}
+
+.chatbot-hint {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #4b5563;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  border-left: 3px solid #ff9100;
 }
 
 /* Messages Area */
