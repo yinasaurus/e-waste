@@ -49,6 +49,7 @@ export default function ChatbotWidget() {
   ]);
 
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,11 +61,20 @@ export default function ChatbotWidget() {
     }
   }, [messages, isOpen]);
 
+  const handleInputChange = (e) => {
+    setQuery(e.target.value);
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+  };
+
   const handleSend = async (textToQuery = query) => {
     if (!textToQuery.trim()) return;
 
     const newQueryText = textToQuery.trim();
     setQuery('');
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
 
     const userMsg = {
       id: Date.now(),
@@ -324,6 +334,8 @@ export default function ChatbotWidget() {
         borderRadius: '12px 12px 0 12px',
         fontSize: 14,
         whiteSpace: 'pre-wrap',
+        overflowWrap: 'anywhere',
+        wordBreak: 'break-word',
       };
     }
     const base = {
@@ -332,6 +344,8 @@ export default function ChatbotWidget() {
       borderRadius: '12px 12px 12px 0',
       fontSize: 14,
       whiteSpace: msg.preformatted ? 'pre-wrap' : 'normal',
+      overflowWrap: 'anywhere',
+      wordBreak: 'break-word',
     };
     if (msg.type === 'primary') {
       return { ...base, backgroundColor: '#3b0764' };
@@ -450,15 +464,19 @@ export default function ChatbotWidget() {
 
           <div className="chatbot-input-area">
             <div className="chatbot-input-container">
-              <input
-                type="text"
+              <textarea
+                ref={inputRef}
                 className="chatbot-input"
                 placeholder="What do you need? (device + budget)"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={handleInputChange}
                 aria-label="Message to Chip"
+                rows={1}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSend();
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
                 }}
               />
               <button type="button" className="chatbot-send-btn" aria-label="Send" onClick={() => handleSend()}>
