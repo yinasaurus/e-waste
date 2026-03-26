@@ -64,9 +64,7 @@ def _chat_info_message(lowered: str) -> str | None:
             "• Office desktop PC budget 3500\n"
             "• Wireless keyboard under 80\n"
             "• Student iPad under 1200\n\n"
-            "Include a device type or a budget/number so results stay relevant.\n\n"
-            "Note: Chip uses keyword and catalog rules (not a live web LLM), so edge phrasing "
-            "can still mis-fire — rephrase with explicit device + budget if a reply looks off."
+            "Include a device type or a budget/number so results stay relevant."
         )
     return None
 
@@ -175,7 +173,6 @@ def api_chat():
         "budget": None,
         "error": None,
         "info": None,
-        "hint": None,
     }
 
     laptops: list[dict] = []
@@ -222,7 +219,6 @@ def api_chat():
             summary["job_label"] = job_map.get(req["job_function"], "General Use")
             summary["quantity"] = req["quantity"]
             summary["budget"] = req["budget"]
-            summary["hint"] = req.get("assistant_note")
 
             # Laptops
             for _, row in laptops_df.iterrows():
@@ -367,7 +363,6 @@ def index():
         "budget": None,
         "error": None,
         "info": None,
-        "hint": None,
     }
 
     laptops: list[dict] = []
@@ -447,7 +442,6 @@ def index():
                     summary["job_label"] = job_map.get(req["job_function"], "General Use")
                     summary["quantity"] = req["quantity"]
                     summary["budget"] = req["budget"]
-                    summary["hint"] = req.get("assistant_note")
     
                     for _, row in laptops_df.iterrows():
                         new_price = float(row["price_sgd"])

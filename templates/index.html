@@ -387,10 +387,6 @@
       <div class="summary" style="white-space: pre-wrap; margin-top: 16px;">{{ summary.info }}</div>
       {% endif %}
 
-      {% if summary.hint %}
-      <p class="muted" style="margin-top: 12px; border-left: 3px solid #f97316; padding-left: 10px;"><strong>Note:</strong> {{ summary.hint }}</p>
-      {% endif %}
-
       {% if summary.quantity %}
       <div class="summary">
         <div><strong>Quantity:</strong> {{ summary.quantity or 'N/A' }}</div>

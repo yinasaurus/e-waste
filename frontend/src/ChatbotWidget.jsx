@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, ChevronDown, Minus } from 'lucide-react';
+import { Send, Minus } from 'lucide-react';
 import { API_BASE } from './config';
 import './ChatbotWidget.css';
 
@@ -43,9 +43,7 @@ export default function ChatbotWidget() {
       id: 1,
       sender: 'bot',
       type: 'primary',
-      text:
-        "Hi — I'm Chip, your Specs-to-Need assistant. Say what you need and a budget (e.g. “gaming laptop under 2000” or “office desktop 3500”). " +
-        'For a structured laptop price from specs, use FMV Check in the main site menu — that uses a different model than this chat.',
+      text: `Hi — I'm Chip, your Specs-to-Need assistant. Say what you need and a budget (e.g. "gaming laptop under 2000" or "office desktop 3500").`,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -116,11 +114,6 @@ export default function ChatbotWidget() {
         botContentData = data;
       }
 
-      const hint =
-        response.ok && !data.summary?.info && !data.summary?.error
-          ? data.summary?.hint || null
-          : null;
-
       setMessages((prev) => {
         const botMsg = {
           id: Date.now() + 1,
@@ -128,7 +121,6 @@ export default function ChatbotWidget() {
           type: prev.length % 2 === 0 ? 'primary' : 'secondary',
           text: botResponseText,
           data: botContentData,
-          hint,
           preformatted,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
@@ -390,7 +382,6 @@ export default function ChatbotWidget() {
                   <div style={bubbleStyle(msg)}>
                     {msg.text}
                     {msg.data && renderDataTables(msg.data)}
-                    {msg.hint && <p className="chatbot-hint">{msg.hint}</p>}
                   </div>
                   <div
                     className="message-time"
@@ -474,18 +465,20 @@ export default function ChatbotWidget() {
         </div>
       ) : null}
 
-      <button type="button" className="chatbot-toggle" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen} aria-label={isOpen ? 'Collapse chat' : 'Open Ask Chip'}>
-        {isOpen ? (
-          <ChevronDown color="white" size={32} />
-        ) : (
-          <>
-            <div className="chatbot-hover-pill">Ask Chip!</div>
-            <span>
-              <img src="img/chipcycle logo.png" alt="" />
-            </span>
-          </>
-        )}
-      </button>
+      {!isOpen && (
+        <button
+          type="button"
+          className="chatbot-toggle"
+          onClick={() => setIsOpen(true)}
+          aria-expanded={false}
+          aria-label="Open Ask Chip"
+        >
+          <div className="chatbot-hover-pill">Ask Chip!</div>
+          <span>
+            <img src="img/chipcycle logo.png" alt="" />
+          </span>
+        </button>
+      )}
     </div>
   );
 }

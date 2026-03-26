@@ -7,6 +7,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  /* Never let the column grow above the viewport (avoids clipping the chat header). */
+  max-height: calc(100vh - 24px);
 }
 
 /* Toggle Button */
@@ -24,6 +26,7 @@
   cursor: pointer;
   transition: transform 0.2s;
   position: relative;
+  flex-shrink: 0;
 }
 
 .chatbot-toggle:hover {
@@ -61,12 +64,13 @@
   transform: translateX(0);
 }
 
-/* Chat Window */
+/* Chat Window — shorter when FAB visible; taller when only the panel is shown (:has) */
 .chatbot-window {
-  width: 380px;
-  max-width: calc(100vw - 40px);
-  height: 600px;
-  max-height: calc(100vh - 120px);
+  width: 460px;
+  max-width: calc(100vw - 32px);
+  height: min(680px, calc(100vh - 140px));
+  max-height: calc(100vh - 140px);
+  min-height: 0;
   background: #f7f7f7;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -75,10 +79,17 @@
   margin-bottom: 20px;
   overflow: hidden;
   border: 1px solid #ddd;
+  flex-shrink: 1;
+}
+
+.chatbot-widget-container:has(.chatbot-window) .chatbot-window {
+  height: min(720px, calc(100vh - 56px));
+  max-height: calc(100vh - 56px);
 }
 
 /* Header */
 .chatbot-header {
+  flex-shrink: 0;
   background-color: #212121;
   color: white;
   padding: 16px 20px;
@@ -159,7 +170,7 @@
 .message-body {
   display: flex;
   flex-direction: column;
-  max-width: 85%;
+  max-width: 92%;
 }
 
 .message-avatar.user-avatar {
@@ -181,26 +192,18 @@
   margin-bottom: 4px;
 }
 
-.chatbot-hint {
-  margin: 10px 0 0;
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: #4b5563;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 8px;
-  border-left: 3px solid #ff9100;
-}
-
 /* Messages Area */
 .chatbot-messages {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 20px;
   background-color: #f7f7f7;
+  -webkit-overflow-scrolling: touch;
 }
 
 .message-row {
@@ -295,6 +298,7 @@
 
 /* Quick Actions */
 .chatbot-quick-actions {
+  flex-shrink: 0;
   display: flex;
   gap: 8px;
   padding: 10px 20px;
@@ -322,6 +326,7 @@
 
 /* Input Area */
 .chatbot-input-area {
+  flex-shrink: 0;
   padding: 16px;
   background-color: white;
   border-top: 1px solid #e5e7eb;
