@@ -425,24 +425,35 @@
 }
 
 /* Custom scrollbars for Windows to match macOS */
+.chatbot-messages,
+.message-table-section,
+.chatbot-quick-actions {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
 .chatbot-messages::-webkit-scrollbar,
-.message-table-section::-webkit-scrollbar {
+.message-table-section::-webkit-scrollbar,
+.chatbot-quick-actions::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 .chatbot-messages::-webkit-scrollbar-track,
-.message-table-section::-webkit-scrollbar-track {
+.message-table-section::-webkit-scrollbar-track,
+.chatbot-quick-actions::-webkit-scrollbar-track {
   background: transparent;
 }
 
 .chatbot-messages::-webkit-scrollbar-thumb,
-.message-table-section::-webkit-scrollbar-thumb {
+.message-table-section::-webkit-scrollbar-thumb,
+.chatbot-quick-actions::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.15);
   border-radius: 4px;
 }
 
 .chatbot-messages::-webkit-scrollbar-thumb:hover,
-.message-table-section::-webkit-scrollbar-thumb:hover {
+.message-table-section::-webkit-scrollbar-thumb:hover,
+.chatbot-quick-actions::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
 }
