@@ -1,14 +1,14 @@
 .chatbot-widget-container {
   position: fixed;
-  bottom: 12px;
-  right: 12px;
+  top: 5px;
+  bottom: 5px;
+  right: 10px;
   z-index: 9999;
   font-family: 'Inter', system-ui, sans-serif;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  /* Never let the column grow above the viewport (avoids clipping the chat header). */
-  max-height: calc(100vh - 24px);
+  justify-content: flex-end;
 }
 
 /* Toggle Button */
@@ -29,9 +29,9 @@
   flex-shrink: 0;
 }
 
-.chatbot-toggle[aria-expanded="true"] {
-  height: 50px;
-  border-radius: 25px;
+.chatbot-toggle.is-open {
+  height: 40px !important;
+  border-radius: 20px !important;
 }
 
 .chatbot-toggle:hover {
@@ -74,16 +74,14 @@
 .chatbot-window {
   width: 360px;
   /* Increased by 15px to offset Windows standard scrollbar physical layout width */
-  max-width: calc(100vw - 32px);
-  height: calc(100vh - 82px);
-  max-height: calc(100vh - 82px);
+  flex: 1;
   min-height: 0;
   background: #f7f7f7;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   overflow: hidden;
   border: 1px solid #ddd;
   flex-shrink: 1;

@@ -489,14 +489,14 @@ export default function ChatbotWidget() {
 
       <button
         type="button"
-        className="chatbot-toggle"
+        className={`chatbot-toggle ${isOpen ? 'is-open' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-label={isOpen ? "Close Ask Chip" : "Open Ask Chip"}
       >
         {!isOpen && <div className="chatbot-hover-pill">Ask Chip!</div>}
         <span>
-          {isOpen ? <ChevronDown size={36} color="white" /> : <img src="img/chipcycle logo.png" alt="" />}
+          {isOpen ? <ChevronDown size={24} color="white" /> : <img src="img/chipcycle logo.png" alt="" />}
         </span>
       </button>
     </div>
