@@ -66,11 +66,12 @@
 
 /* Chat Window — shorter when FAB visible; taller when only the panel is shown (:has) */
 .chatbot-window {
-  width: 360px; /* Increased by 15px to offset Windows standard scrollbar physical layout width */
-  max-width: calc(100vw - 32px);
-  height: min(680px, calc(100vh - 140px));
-  max-height: calc(100vh - 140px);
-  min-height: 0;
+  width: 360px;
+  min-width: 360px; /* Prevents horizontal squishing on smaller windows */
+  max-width: 100vw;
+  height: 650px; /* Standardize the height so it doesn't variably stretch */
+  min-height: 600px; /* Prevent vertical crushing on small laptops */
+  max-height: calc(100vh - 100px);
   background: #f7f7f7;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
