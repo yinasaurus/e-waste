@@ -421,3 +421,26 @@
     transform: scale(1);
   }
 }
+
+/* Custom scrollbars for Windows to match macOS */
+.chatbot-messages::-webkit-scrollbar,
+.message-table-section::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.chatbot-messages::-webkit-scrollbar-track,
+.message-table-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chatbot-messages::-webkit-scrollbar-thumb,
+.message-table-section::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.chatbot-messages::-webkit-scrollbar-thumb:hover,
+.message-table-section::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
