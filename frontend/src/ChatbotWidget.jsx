@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Minus } from 'lucide-react';
+import { Send, Minus, ChevronDown } from 'lucide-react';
 import { API_BASE } from './config';
 import './ChatbotWidget.css';
 
@@ -49,6 +49,7 @@ export default function ChatbotWidget() {
   ]);
 
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,11 +61,20 @@ export default function ChatbotWidget() {
     }
   }, [messages, isOpen]);
 
+  const handleInputChange = (e) => {
+    setQuery(e.target.value);
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+  };
+
   const handleSend = async (textToQuery = query) => {
     if (!textToQuery.trim()) return;
 
     const newQueryText = textToQuery.trim();
     setQuery('');
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
 
     const userMsg = {
       id: Date.now(),
@@ -113,6 +123,10 @@ export default function ChatbotWidget() {
         botResponseText = buildSummaryIntro(data);
         botContentData = data;
       }
+
+      // Add a 2-3 second delay to simulate bot processing
+      const delayMs = Math.floor(Math.random() * 1000) + 2000;
+      await new Promise(resolve => setTimeout(resolve, delayMs));
 
       setMessages((prev) => {
         const botMsg = {
@@ -314,12 +328,14 @@ export default function ChatbotWidget() {
   const bubbleStyle = (msg) => {
     if (msg.sender === 'user') {
       return {
-        backgroundColor: '#f1f1f1',
+        backgroundColor: '#e0e0e0',
         color: '#333',
         padding: '12px 16px',
         borderRadius: '12px 12px 0 12px',
         fontSize: 14,
         whiteSpace: 'pre-wrap',
+        overflowWrap: 'anywhere',
+        wordBreak: 'break-word',
       };
     }
     const base = {
@@ -328,6 +344,8 @@ export default function ChatbotWidget() {
       borderRadius: '12px 12px 12px 0',
       fontSize: 14,
       whiteSpace: msg.preformatted ? 'pre-wrap' : 'normal',
+      overflowWrap: 'anywhere',
+      wordBreak: 'break-word',
     };
     if (msg.type === 'primary') {
       return { ...base, backgroundColor: '#3b0764' };
@@ -446,15 +464,19 @@ export default function ChatbotWidget() {
 
           <div className="chatbot-input-area">
             <div className="chatbot-input-container">
-              <input
-                type="text"
+              <textarea
+                ref={inputRef}
                 className="chatbot-input"
                 placeholder="What do you need? (device + budget)"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={handleInputChange}
                 aria-label="Message to Chip"
+                rows={1}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSend();
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
                 }}
               />
               <button type="button" className="chatbot-send-btn" aria-label="Send" onClick={() => handleSend()}>
@@ -465,20 +487,18 @@ export default function ChatbotWidget() {
         </div>
       ) : null}
 
-      {!isOpen && (
-        <button
-          type="button"
-          className="chatbot-toggle"
-          onClick={() => setIsOpen(true)}
-          aria-expanded={false}
-          aria-label="Open Ask Chip"
-        >
-          <div className="chatbot-hover-pill">Ask Chip!</div>
-          <span>
-            <img src="img/chipcycle logo.png" alt="" />
-          </span>
-        </button>
-      )}
+      <button
+        type="button"
+        className={`chatbot-toggle ${isOpen ? 'is-open' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-label={isOpen ? "Close Ask Chip" : "Open Ask Chip"}
+      >
+        {!isOpen && <div className="chatbot-hover-pill">Ask Chip!</div>}
+        <span>
+          {isOpen ? <ChevronDown size={24} color="white" /> : <img src="img/chipcycle logo.png" alt="" />}
+        </span>
+      </button>
     </div>
   );
 }
