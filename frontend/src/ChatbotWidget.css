@@ -347,7 +347,7 @@
   align-items: flex-end;
   background-color: #f3f4f6;
   border-radius: 24px;
-  padding: 8px 10px; /* narrowed padding to give text 12 extra pixels */
+  padding: 8px 12px;
 }
 
 .chatbot-input {
@@ -357,10 +357,12 @@
   background: transparent;
   padding: 8px 0;
   margin-right: 8px;
-  font-size: 13.5px; /* slightly scaled down to guarantee 1 line fit */
+  font-size: 14px;
   outline: none;
   color: #1f2937;
   line-height: 1.4;
+  max-height: 120px;
+  overflow-y: auto;
   resize: none;
   box-sizing: border-box;
 }
