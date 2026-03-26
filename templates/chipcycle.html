@@ -8,6 +8,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
       *,
       *::before,
@@ -1717,6 +1718,532 @@
       .tab-pill.active {
         background: var(--purple);
         color: var(--light);
+      }
+
+      /* ═══════════ CHATBOT ═══════════ */
+      .chat-fab {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        width: 62px;
+        height: 62px;
+        border: none;
+        border-radius: 50%;
+        background: var(--orange);
+        color: var(--light);
+        font-size: 28px;
+        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.4);
+        cursor: pointer;
+        z-index: 999;
+        overflow: visible;
+      }
+      /* 1. The Main Chat Bubble Text (The Rectangle) */
+.chat-fab::before {
+  content: "Ask Chip!";
+  position: absolute;
+  right: 10px; /* Adjust this to move the entire bubble left/right */
+  bottom: calc(100% + 14px); /* Sits exactly 14px above the button */
+  
+  /* Make sure this color matches the tail color below! */
+  background: #e69d35; 
+  color: #fff;
+  border-radius: 24px; 
+  padding: 12px 28px; 
+  min-width: 180px; 
+  font-family: "Poppins", sans-serif;
+  font-size: 32px; 
+  line-height: 1;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(10px); 
+}
+
+/* 2. The Chat Bubble Tail (The connected triangle) */
+.chat-fab::after {
+  content: "";
+  position: absolute;
+  right: 35px; /* Adjust this to slide the tail left/right along the bottom of the bubble */
+  
+  /* Sits exactly at 100% of the button, overlapping the bubble above by 1px to hide any gaps */
+  bottom: calc(100% - 1px); 
+  
+  /* This creates a triangle pointing down and right */
+  border-top: 16px solid #e69d35; /* MUST match the bubble's background color */
+  border-left: 18px solid transparent;
+  border-right: 0 solid transparent;
+  border-bottom: 0 solid transparent;
+  
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: translateY(10px); 
+}
+
+/* 3. The Hover Animations (Slides both the bubble AND the tail up together) */
+.chat-fab:hover::before,
+.chat-fab:focus-visible::before,
+.chat-fab:hover::after,
+.chat-fab:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 4. Hide them when the chat window is actually open */
+.chat-open .chat-fab::before,
+.chat-open .chat-fab::after {
+  opacity: 0 !important;
+  transform: translateY(10px) !important;
+}
+      .chat-fab img {
+        width: 70%;
+        height: 70%;
+        object-fit: contain;
+      }
+      .chat-fab-icon {
+        font-size: 30px;
+        color: #ffffff;
+        line-height: 1;
+        display: none;
+        position: absolute;
+        inset: 0;
+        align-items: center;
+        justify-content: center;
+        transform: translateY(-7px);
+      }
+      .chat-open .chat-fab img {
+        display: none;
+      }
+      .chat-open .chat-fab .chat-fab-icon {
+        display: flex;
+      }
+      .chat-panel {
+        position: fixed;
+        right: 24px;
+        bottom: 96px;
+        width: min(380px, calc(100vw - 32px));
+        height: 620px;
+        background: #f0f1f5;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 20px 55px rgba(0, 0, 0, 0.45);
+        z-index: 1000;
+        display: none;
+      }
+      .chat-panel.open {
+        display: flex;
+        flex-direction: column;
+      }
+      .chat-header {
+        background: #181a1f;
+        color: #fff;
+        padding: 12px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .chat-header-main {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .chat-header-avatar {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #f49a1b;
+        background: #f49a1b;
+      }
+      .chat-header-title {
+        font-family: "Poppins", sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+      .chat-header-status {
+        margin-top: 2px;
+        font-size: 13px;
+        color: #38e275;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .chat-header-status::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 0 2px rgba(56, 226, 117, 0.2);
+      }
+      .chat-close {
+        width: 32px;
+        height: 32px;
+        border: 2px solid rgba(255, 255, 255, 0.85);
+        border-radius: 50%;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 24px;
+        line-height: 1;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0;
+        cursor: pointer;
+      }
+      .chat-body {
+        flex: 1;
+        padding: 14px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #f0f1f5;
+      }
+      .chat-msg {
+        max-width: 84%;
+        width: fit-content;
+        font-size: 15px;
+        line-height: 1.45;
+        padding: 14px 16px;
+        border-radius: 18px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .chat-bot-stack {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        max-width: 96%;
+      }
+      .chat-user-stack {
+      display: flex !important;
+      flex-direction: column !important;
+      width: max-content !important;
+      align-items: flex-start !important;
+    }
+      .chat-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+      }
+      .chat-row.bot {
+        justify-content: flex-start;
+      }
+      .chat-row.user {
+        justify-content: flex-end;
+      }
+      .chat-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: #fff;
+      }
+      .chat-avatar.bot {
+        border: 3px solid #f49a1b;
+        background: #f49a1b;
+      }
+      .chat-avatar.user {
+        border: 2px solid #d4d8e2;           /* Your existing border */
+        
+        /* The new centering rules */
+        display: flex !important;
+        justify-content: center !important;  /* Centers horizontally */
+        align-items: center !important;      /* Centers vertically */
+        padding: 0 !important;               /* Strips away uneven padding */
+        line-height: 1 !important;           /* Stops the font from pushing it off-center */
+      }
+      .chat-msg.bot {
+        background: #4e159d;
+        color: #fff;
+        border-top-left-radius: 8px;
+        text-align: left;
+        max-width: min(92%, 320px);
+        padding: 22px 24px;
+        font-family: "Poppins", sans-serif;
+        font-size: 15px;
+        line-height: 1.3;
+        font-weight: 500;
+        position: relative;
+        margin-bottom: 16px;
+      }
+      .chat-msg.bot::before {
+        content: "";
+        position: absolute;
+        left: -12px;
+        bottom: 10px;
+        width: 0;
+        height: 0;
+        border-top: 10px solid transparent;
+        border-bottom: 10px solid transparent;
+        border-right: 14px solid #4e159d;
+      }
+      .chat-msg-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: #7a2bd3;
+        border-radius: 999px;
+        padding: 3px;
+        position: absolute;
+        right: 10px;
+        bottom: -14px;
+        box-shadow: 0 3px 10px rgba(78, 21, 157, 0.2);
+      }
+      .chat-action-btn {
+        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: transparent;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+      }
+      .chat-action-btn svg {
+        width: 15px;
+        height: 15px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .chat-action-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .chat-action-btn.active {
+        background: rgba(255, 255, 255, 0.3);
+      }
+      .chat-msg.user {
+        background: #dfe2e7;
+        color: #1f2128;
+        border-bottom-right-radius: 8px;
+        position: relative;
+        max-width: min(84%, 300px);
+        text-align: left;
+        /* 1. Sizing: The foolproof combo */
+        width: fit-content !important; 
+        max-width: 75% !important;     /* Keeps long sentences from stretching across the screen */
+        min-width: 80px !important;    /* THE FIX: Large enough to fit "hello" + your inner padding */
+        
+        /* 2. Text Wrapping: Strict Rules */
+        word-break: normal !important;        /* CRITICAL: Absolutely forbids snapping normal words in half */
+        overflow-wrap: break-word !important; /* Only breaks a word if it is a giant URL */
+        white-space: pre-wrap !important;     /* Respects spaces and paragraph breaks */
+      }
+      .chat-meta {
+        font-size: 13px;
+        color: #747987;
+        line-height: 1;
+        margin-top: 3px;
+        padding: 0 2px;
+      }
+      .chat-meta.user {
+        display: flex !important;
+        align-items: center !important;
+        gap: 3px !important;
+        margin: 4px 0 0 0 !important;
+        padding-left: 2px !important;
+        
+        /* THE FIXES */
+        width: max-content !important;     /* Stops the box from stretching across the whole screen */
+        align-self: flex-start !important; /* Aligns the time to the left edge of the message wrapper */
+      }
+      .chat-meta.bot {
+        margin-top: -12px;
+      }
+      .chat-ticks {
+        color: #7a2bd3;
+        font-family: "Poppins", "Inter", sans-serif;
+        font-weight: 600;
+        letter-spacing: -2px;
+        font-size: 16px;
+        line-height: 1;
+      }
+      
+      /* 1. THE TIP: Pushes the triangle OUTSIDE the box */
+.chat-msg.user::after {
+  content: "";
+  position: absolute;
+  right: -14px !important; 
+  bottom: 10px;
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 14px solid #dfe2e7;
+}
+
+/* 2. THE ROW: Glues the bubble and avatar together on the right */
+.chat-row.user {
+  display: flex !important;
+  justify-content: flex-end !important; 
+  align-items: flex-end !important;
+  width: 100% !important;
+  gap: 0px !important; /* Forces the pointy tip to touch the avatar */
+  margin: 10px 0 !important;
+}
+
+/* 3. THE STACK: Stops the stretching! */
+.chat-user-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important; /* Time stays on the LEFT side of the bubble */
+  
+  /* 👇 THIS IS THE MAGIC COMBO */
+  margin-left: auto !important;   /* Shoves empty space to the left */
+  width: fit-content !important;  /* Stops the box from being wider than the text */
+  max-width: 70% !important; 
+  flex-shrink: 1 !important;      /* Allows it to shrink to fit the text */
+}
+
+/* 4. THE BUBBLE: Styled correctly with no extra margins */
+.chat-msg.user {
+  background: #dfe2e7;
+  color: #1f2128;
+  padding: 10px 15px;
+  border-radius: 18px 18px 0px 18px;
+  position: relative;
+  margin: 0 !important; /* Prevents pushing the avatar away */
+  
+  /* Text handling */
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  white-space: pre-wrap !important;
+}
+
+/* 5. THE AVATAR: No space allowed */
+.chat-avatar.user {
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* 6. THE TIME: Aligned to the left of the bubble */
+.chat-meta.user {
+  display: flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  margin: 4px 0 0 0 !important;
+  padding-left: 5px !important;
+  width: max-content !important;
+  align-self: flex-start !important;
+}
+      .chat-card {
+        max-width: 96%;
+        align-self: flex-start;
+        background: #ffffff;
+        color: #1f2128;
+        border-radius: 12px;
+        padding: 10px 12px;
+        border: 1px solid #e6e7eb;
+      }
+      .chat-card-title {
+        font-family: "Poppins", sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #4e159d;
+        text-transform: uppercase;
+        margin: 8px 0 6px;
+      }
+      .chat-summary {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      .chat-mini-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .chat-mini-table th,
+      .chat-mini-table td {
+        border-bottom: 1px solid #eceef2;
+        text-align: left;
+        padding: 4px 6px;
+        vertical-align: top;
+      }
+      .chat-mini-table th {
+        font-weight: 700;
+        background: #f6f7fb;
+      }
+      .chat-input-wrap {
+        background: transparent;
+        padding: 10px 12px 14px;
+        display: flex;
+        gap: 8px;
+      }
+      .chat-quick-actions {
+        display: flex;
+        gap: 8px;
+        padding: 0 12px 6px;
+      }
+      .chat-quick-btn {
+        flex: 1;
+        border: 1px solid #d9dde5;
+        background: #eceef3;
+        color: #4b4f58;
+        border-radius: 13px;
+        padding: 8px 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      #chatInput {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-family: "Inter", sans-serif;
+        font-size: 16px;
+        padding: 0 2px;
+        color: #2f3440;
+        outline: none;
+        resize: none;
+        line-height: 1.35;
+        min-height: 26px;
+        max-height: 88px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+      }
+      #chatInput::placeholder {
+        color: #767c8b;
+      }
+      #chatSendBtn {
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: #5967f1;
+        font-size: 30px;
+        line-height: 1;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        cursor: pointer;
+      }
+      #chatSendBtn:disabled {
+        color: #a7afdd;
+        cursor: default;
+      }
+      .chat-input-shell {
+        background: #e4e7ef;
+        border-radius: 20px;
+        padding: 12px 12px 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
       }
 
       /* ═══════════ RESPONSIVE ═══════════ */
@@ -3769,6 +4296,86 @@
       </footer>
     </div>
 
+    <!-- ═══════════ CHATBOT WIDGET ═══════════ -->
+    <button id="chatFab" class="chat-fab" aria-label="Open chatbot">
+      <img src="img/chipcycle logo.png" alt="ChipCycle chatbot" />
+      <span class="chat-fab-icon" aria-hidden="true">⌄</span>
+    </button>
+    <div id="chatPanel" class="chat-panel" aria-hidden="true">
+      <div class="chat-header">
+        <div class="chat-header-main">
+          <img
+            class="chat-header-avatar"
+            src="img/chipcycle logo.png"
+            alt="Ask Chip"
+          />
+          <div>
+            <div class="chat-header-title">Ask Chip</div>
+            <div class="chat-header-status">Online</div>
+          </div>
+        </div>
+        <button id="chatClose" class="chat-close" aria-label="Close chatbot">
+          −
+        </button>
+      </div>
+      <div id="chatBody" class="chat-body">
+        <div class="chat-row bot">
+          <img
+            class="chat-avatar bot"
+            src="img/chipcycle logo.png"
+            alt="ChipCycle"
+          />
+          <div class="chat-bot-stack">
+            <div class="chat-msg bot"> Hi! Tell me your hardware needs, quantity and budget. Example: "Need 3 office laptops under 1200 with keyboards."
+              <div class="chat-msg-actions">
+                <button class="chat-action-btn" type="button" aria-label="Copy message">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+                    <path d="M5 15V6a2 2 0 0 1 2-2h9"></path>
+                  </svg>
+                </button>
+                <button class="chat-action-btn" type="button" aria-label="Like message">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M14 9V5a3 3 0 0 0-3-3l-1 5-4 4v9h11a2 2 0 0 0 2-1.7l1-7A2 2 0 0 0 18 9h-4z"></path>
+                    <path d="M6 11H3v9h3"></path>
+                  </svg>
+                </button>
+                <button class="chat-action-btn" type="button" aria-label="Dislike message">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M10 15v4a3 3 0 0 0 3 3l1-5 4-4V4H7a2 2 0 0 0-2 1.7l-1 7A2 2 0 0 0 6 15h4z"></path>
+                    <path d="M18 13h3V4h-3"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="chat-meta bot"></div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-quick-actions">
+        <button class="chat-quick-btn" data-message="What is ChipCycle?">
+          🤔 What is ChipCycle?
+        </button>
+        <button class="chat-quick-btn" data-message="Show pricing options">
+          💰 Pricing
+        </button>
+        <button class="chat-quick-btn" data-message="Show frequently asked questions">
+          🙋 FAQs
+        </button>
+      </div>
+      <div class="chat-input-wrap">
+        <div class="chat-input-shell">
+          <textarea
+            id="chatInput"
+            placeholder="Type your message here..."
+            autocomplete="off"
+            rows="1"
+          ></textarea>
+          <button id="chatSendBtn" aria-label="Send message">➤</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ════════════════════════════════════════════════
      JAVASCRIPT
 ════════════════════════════════════════════════ -->
@@ -3866,6 +4473,332 @@
 
       bulkTab.addEventListener("click", () => setActive("bulk"));
       individualTab.addEventListener("click", () => setActive("individual"));
+
+      const chatFab = document.getElementById("chatFab");
+      const chatPanel = document.getElementById("chatPanel");
+      const chatClose = document.getElementById("chatClose");
+      const chatBody = document.getElementById("chatBody");
+      const chatInput = document.getElementById("chatInput");
+      const chatSendBtn = document.getElementById("chatSendBtn");
+      const quickActionButtons = document.querySelectorAll(".chat-quick-btn");
+      const BOT_AVATAR_SRC = "img/chipcycle logo.png";
+      const pendingUserTickEls = [];
+
+      function getUserAvatarSrc() {
+        const stored = localStorage.getItem("chipcycleUserAvatar");
+        if (stored) return stored;
+        const navAvatar = document.querySelector(".nav-user img");
+        if (navAvatar && navAvatar.getAttribute("src")) {
+          return navAvatar.getAttribute("src");
+        }
+        const name =
+          document.querySelector(".nav-user-name")?.textContent?.trim() ||
+          "User";
+        const initial = (name.replace("Welcome,", "").trim()[0] || "U")
+          .toUpperCase();
+        return `data:image/svg+xml;utf8,${encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' width='84' height='84'><rect width='100%' height='100%' rx='42' fill='#cfd5e2'/><text x='50%' y='56%' font-size='36' text-anchor='middle' fill='#3d4351' font-family='Arial, sans-serif'>${initial}</text></svg>`
+        )}`;
+      }
+
+      function bindBotActions(actionsEl, messageText) {
+        if (!actionsEl) return;
+        const [copyBtn, likeBtn, dislikeBtn] =
+          actionsEl.querySelectorAll(".chat-action-btn");
+        if (!copyBtn || !likeBtn || !dislikeBtn) return;
+
+        copyBtn.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(messageText);
+            copyBtn.classList.add("active");
+            setTimeout(() => copyBtn.classList.remove("active"), 800);
+          } catch (err) {
+            // Clipboard can fail on non-secure contexts; keep UI stable.
+            copyBtn.classList.add("active");
+            setTimeout(() => copyBtn.classList.remove("active"), 800);
+          }
+        });
+
+        likeBtn.addEventListener("click", () => {
+          likeBtn.classList.toggle("active");
+          if (likeBtn.classList.contains("active")) {
+            dislikeBtn.classList.remove("active");
+          }
+        });
+
+        dislikeBtn.addEventListener("click", () => {
+          dislikeBtn.classList.toggle("active");
+          if (dislikeBtn.classList.contains("active")) {
+            likeBtn.classList.remove("active");
+          }
+        });
+      }
+
+      function createBotActions(messageText) {
+        const actions = document.createElement("div");
+        actions.className = "chat-msg-actions";
+        actions.innerHTML = `
+          <button class="chat-action-btn" type="button" aria-label="Copy message">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+              <path d="M5 15V6a2 2 0 0 1 2-2h9"></path>
+            </svg>
+          </button>
+          <button class="chat-action-btn" type="button" aria-label="Like message">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14 9V5a3 3 0 0 0-3-3l-1 5-4 4v9h11a2 2 0 0 0 2-1.7l1-7A2 2 0 0 0 18 9h-4z"></path>
+              <path d="M6 11H3v9h3"></path>
+            </svg>
+          </button>
+          <button class="chat-action-btn" type="button" aria-label="Dislike message">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 15v4a3 3 0 0 0 3 3l1-5 4-4V4H7a2 2 0 0 0-2 1.7l-1 7A2 2 0 0 0 6 15h4z"></path>
+              <path d="M18 13h3V4h-3"></path>
+            </svg>
+          </button>
+        `;
+        bindBotActions(actions, messageText);
+        return actions;
+      }
+
+      function markPendingUserMessagesAsRead() {
+        pendingUserTickEls.forEach((tickEl) => {
+          tickEl.textContent = "✓✓";
+          tickEl.setAttribute("aria-label", "Read by chatbot");
+        });
+        pendingUserTickEls.length = 0;
+      }
+
+      function getCurrentChatTime() {
+        const now = new Date();
+        const hour = now.getHours() % 12 || 12;
+        const minute = String(now.getMinutes()).padStart(2, "0");
+        return `${hour}:${minute}`;
+      }
+
+      function syncChatInputHeight() {
+        chatInput.style.height = "auto";
+        chatInput.style.height = `${Math.min(chatInput.scrollHeight, 88)}px`;
+      }
+
+      function appendChatMessage(text, sender) {
+        if (sender === "bot") {
+          markPendingUserMessagesAsRead();
+        }
+        const row = document.createElement("div");
+        row.className = `chat-row ${sender}`;
+
+        const avatar = document.createElement("img");
+        avatar.className = `chat-avatar ${sender}`;
+        avatar.alt = sender === "bot" ? "ChipCycle" : "User";
+        avatar.src = sender === "bot" ? BOT_AVATAR_SRC : getUserAvatarSrc();
+
+        const msg = document.createElement("div");
+        msg.className = `chat-msg ${sender}`;
+        msg.textContent = text;
+        const meta = document.createElement("div");
+        meta.className = `chat-meta ${sender}`;
+        if (sender === "user") {
+          meta.innerHTML = `<span class="chat-time">${getCurrentChatTime()}</span><span class="chat-ticks" aria-label="Sent not read">✓</span>`;
+        } else {
+          meta.textContent = getCurrentChatTime();
+        }
+
+        if (sender === "bot") {
+          const botStack = document.createElement("div");
+          botStack.className = "chat-bot-stack";
+          msg.appendChild(createBotActions(text));
+          botStack.appendChild(msg);
+          botStack.appendChild(meta);
+          row.appendChild(avatar);
+          row.appendChild(botStack);
+        } else {
+          const userStack = document.createElement("div");
+          userStack.className = "chat-user-stack";
+          userStack.appendChild(msg);
+          userStack.appendChild(meta);
+          row.appendChild(userStack);
+          row.appendChild(avatar);
+          const tickEl = meta.querySelector(".chat-ticks");
+          if (tickEl) {
+            pendingUserTickEls.push(tickEl);
+          }
+        }
+
+        chatBody.appendChild(row);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+
+      function appendChatResults(results) {
+        if (!results) return;
+
+        const card = document.createElement("div");
+        card.className = "chat-card";
+
+        const summary = document.createElement("div");
+        summary.className = "chat-summary";
+        const budgetText = results.summary?.budget
+          ? `SGD ${results.summary.budget}`
+          : "Not specified";
+        summary.textContent = `Qty: ${
+          results.summary?.quantity || 1
+        } | Budget: ${budgetText}`;
+        card.appendChild(summary);
+
+        function addTable(title, rows, cols) {
+          if (!rows || !rows.length) return;
+          const heading = document.createElement("div");
+          heading.className = "chat-card-title";
+          heading.textContent = title;
+          card.appendChild(heading);
+
+          const table = document.createElement("table");
+          table.className = "chat-mini-table";
+          const thead = document.createElement("thead");
+          const trHead = document.createElement("tr");
+          cols.forEach((c) => {
+            const th = document.createElement("th");
+            th.textContent = c.label;
+            trHead.appendChild(th);
+          });
+          thead.appendChild(trHead);
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+          rows.forEach((row) => {
+            const tr = document.createElement("tr");
+            cols.forEach((c) => {
+              const td = document.createElement("td");
+              const raw = row[c.key];
+              td.textContent =
+                raw === null || raw === undefined || raw === ""
+                  ? "-"
+                  : String(raw);
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          card.appendChild(table);
+        }
+
+        addTable("Laptops", results.laptops, [
+          { key: "brand", label: "Brand" },
+          { key: "model", label: "Model" },
+          { key: "new", label: "New" },
+          { key: "used", label: "Used" },
+        ]);
+        addTable("Desktop CPU", results.desktop_cpu, [
+          { key: "brand", label: "Brand" },
+          { key: "item", label: "Item" },
+          { key: "new", label: "New" },
+          { key: "used", label: "Used" },
+        ]);
+        addTable("Keyboards", results.keyboards, [
+          { key: "name", label: "Name" },
+          { key: "connection", label: "Conn" },
+          { key: "new", label: "New" },
+          { key: "used", label: "Used" },
+        ]);
+        addTable("Phones", results.phones, [
+          { key: "brand", label: "Brand" },
+          { key: "model", label: "Model" },
+          { key: "ram_gb", label: "RAM" },
+          { key: "storage_gb", label: "Storage" },
+          { key: "new", label: "New" },
+          { key: "used", label: "Used" },
+        ]);
+        addTable("iPads/Tablets", results.ipads, [
+          { key: "model", label: "Model" },
+          { key: "storage", label: "Storage" },
+          { key: "new", label: "New" },
+          { key: "used", label: "Used" },
+        ]);
+
+        chatBody.appendChild(card);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+
+      async function sendChatMessage() {
+        const userText = chatInput.value.trim();
+        if (!userText) return;
+
+        appendChatMessage(userText, "user");
+        chatInput.value = "";
+        syncChatInputHeight();
+        chatSendBtn.disabled = true;
+        chatSendBtn.textContent = "…";
+
+        try {
+          const response = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: userText }),
+          });
+
+          const data = await response.json();
+          const reply =
+            data.reply || "Sorry, I could not process that request.";
+          appendChatMessage(reply, "bot");
+          appendChatResults(data.results);
+        } catch (error) {
+          appendChatMessage(
+            "Unable to reach chatbot server. Start Flask app and open this page through localhost.",
+            "bot"
+          );
+        } finally {
+          chatSendBtn.disabled = false;
+          chatSendBtn.textContent = "➤";
+        }
+      }
+
+      function openChat() {
+        chatPanel.classList.add("open");
+        chatPanel.setAttribute("aria-hidden", "false");
+        document.body.classList.add("chat-open");
+        chatFab.setAttribute("aria-label", "Close chatbot");
+        chatInput.focus();
+      }
+
+      function closeChat() {
+        chatPanel.classList.remove("open");
+        chatPanel.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("chat-open");
+        chatFab.setAttribute("aria-label", "Open chatbot");
+      }
+
+      chatFab.addEventListener("click", () => {
+        if (chatPanel.classList.contains("open")) {
+          closeChat();
+        } else {
+          openChat();
+        }
+      });
+      chatClose.addEventListener("click", closeChat);
+      chatSendBtn.addEventListener("click", sendChatMessage);
+      document.querySelectorAll(".chat-row.bot").forEach((row) => {
+        const msg = row.querySelector(".chat-msg.bot");
+        const actions = row.querySelector(".chat-msg-actions");
+        bindBotActions(actions, msg?.textContent?.trim() || "");
+        const meta = row.querySelector(".chat-meta.bot");
+        if (meta && !meta.textContent.trim()) {
+          meta.textContent = getCurrentChatTime();
+        }
+      });
+      quickActionButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          chatInput.value = button.dataset.message || "";
+          sendChatMessage();
+        });
+      });
+      chatInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendChatMessage();
+        }
+      });
+      chatInput.addEventListener("input", syncChatInputHeight);
+      syncChatInputHeight();
     </script>
   </body>
 </html>
