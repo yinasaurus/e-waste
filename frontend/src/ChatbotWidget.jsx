@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Minus } from 'lucide-react';
+import { Send, Minus, ChevronDown } from 'lucide-react';
 import { API_BASE } from './config';
 import './ChatbotWidget.css';
 
@@ -113,6 +113,10 @@ export default function ChatbotWidget() {
         botResponseText = buildSummaryIntro(data);
         botContentData = data;
       }
+
+      // Add a 2-3 second delay to simulate bot processing
+      const delayMs = Math.floor(Math.random() * 1000) + 2000;
+      await new Promise(resolve => setTimeout(resolve, delayMs));
 
       setMessages((prev) => {
         const botMsg = {
@@ -314,7 +318,7 @@ export default function ChatbotWidget() {
   const bubbleStyle = (msg) => {
     if (msg.sender === 'user') {
       return {
-        backgroundColor: '#f1f1f1',
+        backgroundColor: '#e0e0e0',
         color: '#333',
         padding: '12px 16px',
         borderRadius: '12px 12px 0 12px',
@@ -465,20 +469,18 @@ export default function ChatbotWidget() {
         </div>
       ) : null}
 
-      {!isOpen && (
-        <button
-          type="button"
-          className="chatbot-toggle"
-          onClick={() => setIsOpen(true)}
-          aria-expanded={false}
-          aria-label="Open Ask Chip"
-        >
-          <div className="chatbot-hover-pill">Ask Chip!</div>
-          <span>
-            <img src="img/chipcycle logo.png" alt="" />
-          </span>
-        </button>
-      )}
+      <button
+        type="button"
+        className="chatbot-toggle"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-label={isOpen ? "Close Ask Chip" : "Open Ask Chip"}
+      >
+        {!isOpen && <div className="chatbot-hover-pill">Ask Chip!</div>}
+        <span>
+          {isOpen ? <ChevronDown size={36} color="white" /> : <img src="img/chipcycle logo.png" alt="" />}
+        </span>
+      </button>
     </div>
   );
 }
