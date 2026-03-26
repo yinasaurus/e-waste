@@ -355,6 +355,55 @@ def _parse_k_sgd_budget(text_lower: str) -> int | None:
     return int(float(m.group(1)) * 1000)
 
 
+_MAX_UNITS_ORDERED = 500
+_MAX_BUDGET_SGD = 400_000
+
+
+def _finalize_requirements(req: dict, text_lower: str) -> None:
+    """Caps and small contradiction fixes so downstream matching stays sane."""
+    q = req.get("quantity", 1)
+    if not isinstance(q, int) or q < 1:
+        req["quantity"] = 1
+    elif q > _MAX_UNITS_ORDERED:
+        req["quantity"] = _MAX_UNITS_ORDERED
+
+    b = req.get("budget")
+    if b is not None:
+        try:
+            b_int = int(b)
+        except (TypeError, ValueError):
+            req["budget"] = None
+        else:
+            if b_int < 50:
+                req["budget"] = None
+            elif b_int > _MAX_BUDGET_SGD:
+                req["budget"] = _MAX_BUDGET_SGD
+            else:
+                req["budget"] = b_int
+
+    # Galaxy Tab is a tablet, not a phone, unless they also ask for a phone explicitly.
+    if (
+        "galaxy tab" in text_lower
+        or re.search(r"\bgalaxy\s+tab\b", text_lower)
+        or "tab s8" in text_lower
+        or "tab s9" in text_lower
+        or "tab s6" in text_lower
+        or "tab a" in text_lower
+    ):
+        req["wants_tablet"] = True
+        phone_markers = (
+            "phone",
+            "smartphone",
+            "iphone",
+            "cellular",
+            "android phone",
+            "galaxy s",
+            "galaxy z",
+        )
+        if not any(m in text_lower for m in phone_markers):
+            req["wants_phone"] = False
+
+
 # ---------- 2. NLP parsing ----------
 def parse_requirements(text: str) -> dict:
     """Parse free-text user requirements into structured fields."""
@@ -429,6 +478,19 @@ def parse_requirements(text: str) -> dict:
         text_for_budget,
         flags=re.IGNORECASE,
     )
+    # Refresh / panel specs (avoid "144" in "144hz" becoming a budget)
+    text_for_budget = re.sub(
+        r"\b\d{2,3}\s*hz\b",
+        " ",
+        text_for_budget,
+        flags=re.IGNORECASE,
+    )
+    text_for_budget = re.sub(
+        r"\b\d{1,2}(?:\.\d+)?\s*(?:inch|inches)\b",
+        " ",
+        text_for_budget,
+        flags=re.IGNORECASE,
+    )
 
     def _normalize_money_num(s: str) -> int:
         return int(str(s).replace(",", "").replace(" ", ""))
@@ -482,22 +544,12 @@ def parse_requirements(text: str) -> dict:
     else:
         os_pref = "any"
 
-    # Job function / use-case (order matters: gaming before student for "student gamer" queries)
+    # Job function / use-case (order matters: creative before video so "photo editing" is not
+    # classified as video; gaming before student for "student gamer" queries.)
     if (
-        "video" in text_lower
-        or "editing" in text_lower
-        or "premiere" in text_lower
-        or "after effects" in text_lower
-        or "davinci" in text_lower
-        or "streaming" in text_lower
-        or "twitch" in text_lower
-        or _has_word(text_lower, "obs")
-    ):
-        job = "video_editing"
-    elif (
-        "photo" in text_lower
-        or "photoshop" in text_lower
+        "photoshop" in text_lower
         or "lightroom" in text_lower
+        or "photo" in text_lower
         or "graphic design" in text_lower
         or "designer" in text_lower
         or "design work" in text_lower
@@ -511,10 +563,36 @@ def parse_requirements(text: str) -> dict:
     ):
         job = "creative_design"
     elif (
-        "account" in text_lower
+        "premiere" in text_lower
+        or "after effects" in text_lower
+        or "davinci" in text_lower
+        or "final cut" in text_lower
+        or "filmmaking" in text_lower
+        or "video production" in text_lower
+        or (
+            "video" in text_lower
+            and (
+                "edit" in text_lower
+                or "editing" in text_lower
+                or "encoder" in text_lower
+            )
+        )
+        or "twitch" in text_lower
+        or "vlogger" in text_lower
+        or "youtuber" in text_lower
+        or (
+            _has_word(text_lower, "obs")
+            and ("stream" in text_lower or "recording" in text_lower or "broadcast" in text_lower)
+        )
+    ):
+        job = "video_editing"
+    elif (
+        _has_word(text_lower, "account")
+        or _has_word(text_lower, "accountant")
+        or "accounting" in text_lower
         or "finance" in text_lower
         or "bookkeep" in text_lower
-        or "excel" in text_lower
+        or _has_word(text_lower, "excel")
         or "spreadsheets" in text_lower
         or "quickbooks" in text_lower
         or "xero" in text_lower
@@ -571,6 +649,8 @@ def parse_requirements(text: str) -> dict:
     elif (
         "gaming" in text_lower
         or "games" in text_lower
+        or "gamer" in text_lower
+        or "gamers" in text_lower
         or _has_word(text_lower, "game")
         or "valorant" in text_lower
         or "dota" in text_lower
@@ -637,7 +717,7 @@ def parse_requirements(text: str) -> dict:
         )
     )
 
-    return {
+    req = {
         "job_function": job,
         "budget": budget,
         "quantity": quantity,
@@ -650,6 +730,8 @@ def parse_requirements(text: str) -> dict:
         "wants_desktop": wants_desktop,
         "raw_text": text,
     }
+    _finalize_requirements(req, text_lower)
+    return req
 
 
 # ---------- 3. Map job function to minimum specs ----------

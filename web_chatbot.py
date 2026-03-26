@@ -64,7 +64,9 @@ def _chat_info_message(lowered: str) -> str | None:
             "• Office desktop PC budget 3500\n"
             "• Wireless keyboard under 80\n"
             "• Student iPad under 1200\n\n"
-            "Include a device type or a budget/number so results stay relevant."
+            "Include a device type or a budget/number so results stay relevant.\n\n"
+            "Note: Chip uses keyword and catalog rules (not a live web LLM), so edge phrasing "
+            "can still mis-fire — rephrase with explicit device + budget if a reply looks off."
         )
     return None
 
