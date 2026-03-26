@@ -1,7 +1,7 @@
 .chatbot-widget-container {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
+  bottom: 12px;
+  right: 12px;
   z-index: 9999;
   font-family: 'Inter', system-ui, sans-serif;
   display: flex;
@@ -15,7 +15,7 @@
 .chatbot-toggle {
   width: 70px;
   height: 70px;
-  border: none;
+  border: 2px solid black;
   padding: 0;
   background-color: #ff9100;
   border-radius: 50%;
@@ -66,18 +66,17 @@
 
 /* Chat Window — shorter when FAB visible; taller when only the panel is shown (:has) */
 .chatbot-window {
-  width: 360px;
-  min-width: 360px; /* Prevents horizontal squishing on smaller windows */
-  max-width: 100vw;
-  height: 650px; /* Standardize the height so it doesn't variably stretch */
-  min-height: 600px; /* Prevent vertical crushing on small laptops */
-  max-height: calc(100vh - 100px);
+  width: 360px; /* Increased by 15px to offset Windows standard scrollbar physical layout width */
+  max-width: calc(100vw - 32px);
+  height: calc(100vh - 103px);
+  max-height: calc(100vh - 103px);
+  min-height: 0;
   background: #f7f7f7;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   overflow: hidden;
   border: 1px solid #ddd;
   flex-shrink: 1;
