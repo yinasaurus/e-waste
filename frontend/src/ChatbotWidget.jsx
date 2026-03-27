@@ -124,8 +124,8 @@ export default function ChatbotWidget() {
         botContentData = data;
       }
 
-      // Add a 2-3 second delay to simulate bot processing
-      const delayMs = Math.floor(Math.random() * 1000) + 2000;
+      // Add a 0.5-1.5 second delay to simulate bot processing (snappier response)
+      const delayMs = Math.floor(Math.random() * 1000) + 500;
       await new Promise(resolve => setTimeout(resolve, delayMs));
 
       setMessages((prev) => {
